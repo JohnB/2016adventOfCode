@@ -1,0 +1,121 @@
+<!-- vim: syntax=markdown -->
+
+# Day 01
+
+```elixir
+# Note: when making the next template, something like this works well:
+#   `cat day04.livemd | sed 's/01/04/' > day04.livemd`
+# When inspecting lists of numbers, use "charlists: :as_lists"
+#
+Mix.install([
+  # Join the string so a copy of dayN to dayM doesn't destroy it.
+  {:kino, "~> 0.1" <> "4.2"}
+])
+
+# Join the string so a copy of dayN to dayM doesn't destroy it.
+IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "2" <> "4adventOfCode/advent_of_code.ex")
+alias AdventOfCode, as: AOC
+alias Kino.Input
+```
+
+## Installation and Data
+
+```elixir
+input_example = Kino.Input.textarea("Example Data", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_puzzleInput = Kino.Input.textarea("Puzzle Input", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_source_select =
+  Kino.Input.select("Source", [{:example, "example"}, {:puzzle_input, "puzzle input"}])
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+data = fn ->
+  (Kino.Input.read(input_source_select) == :example &&
+     Kino.Input.read(input_example)) ||
+    Kino.Input.read(input_puzzleInput)
+end
+```
+
+## Solution
+
+```elixir
+defmodule Day01 do
+  def apply_move(dir, x, y, turn, len) do
+      case {dir, turn} do
+        {"N", "R"} -> ["E", x + len, y]
+        {"N", "L"} -> ["W", x - len, y]
+        {"E", "R"} -> ["S", x, y - len]
+        {"E", "L"} -> ["N", x, y + len]
+        {"S", "R"} -> ["W", x - len, y]
+        {"S", "L"} -> ["E", x + len, y]
+        {"W", "R"} -> ["N", x, y + len]
+        {"W", "L"} -> ["S", x, y - len]
+      end
+  end
+
+  def solve1(text) do
+    steps = String.split(text, ", ", trim: true)
+
+    [_last_dir, last_x, last_y] = Enum.reduce(steps, ["N", 0, 0], 
+        fn <<turn::binary-size(1), len::binary>>, [dir, x, y] = _acc -> 
+      len = String.to_integer(len)
+      apply_move(dir, x, y, turn, len)
+    end)
+    abs(last_x) + abs(last_y)
+  end
+
+  def solve2(text) do
+    steps = String.split(text, ", ", trim: true)
+    mapset = MapSet.new() |> MapSet.put({0,0})
+
+    [_last_dir, last_x, last_y] = Enum.reduce_while(steps, ["N", 0, 0, mapset], 
+        fn <<turn::binary-size(1), len::binary>>, [dir, x, y, previous] = _acc -> 
+      len = String.to_integer(len)
+      [dir, x2, y2] = apply_move(dir, x, y, turn, len)
+      previous = MapSet.delete(previous, {x, y}) # don't double-count current spot
+
+      line = if x2 == x do
+          Enum.reduce(y..y2, MapSet.new(), fn yy, acc -> MapSet.put(acc, {x2, yy}) end)
+        else
+          Enum.reduce(x..x2, MapSet.new(), fn xx, acc -> MapSet.put(acc, {xx, y2}) end)
+        end
+
+      intersection = MapSet.intersection(previous, line)
+      if MapSet.size(intersection) > 0 do
+        IO.inspect(intersection, label: "Already visited!")
+        [{last_x, last_y}] = MapSet.to_list(intersection)
+        {:halt, [dir, last_x, last_y]}
+      else
+        {:cont, [dir, x2, y2, MapSet.union(previous, line)]}
+        # |> IO.inspect()
+      end
+    end)
+    abs(last_x) + abs(last_y)
+  end
+end
+
+# Example:
+
+IO.inspect(Time.utc_now())
+data.()
+|> Day01.solve1()
+|> IO.inspect(label: "\n*** Part 1 solution (example: 8)")
+# 300
+
+data.()
+|> Day01.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: 4)")
+# 
+
+```

@@ -1,10 +1,10 @@
 <!-- vim: syntax=markdown -->
 
-# Day 02
+# Day 03
 
 ```elixir
 # Note: when making the next template, something like this works well:
-#   `cat day04.livemd | sed 's/02/04/' > day04.livemd`
+#   `cat day04.livemd | sed 's/03/04/' > day04.livemd`
 # When inspecting lists of numbers, use "charlists: :as_lists"
 #
 Mix.install([
@@ -50,7 +50,7 @@ end
 ## Solution
 
 ```elixir
-defmodule Day02 do
+defmodule Day03 do
   @mapping1 %{
     "1U" => "1", "1R" => "2", "1D" => "4", "1L" => "1",
     "2U" => "2", "2R" => "3", "2D" => "5", "2L" => "1",
@@ -107,12 +107,12 @@ end
 # Example:
 
 data.()
-|> Day02.solve1()
+|> Day03.solve1()
 |> IO.inspect(label: "\n*** Part 1 solution (example: 1985)")
 # 76792
 
 data.()
-|> Day02.solve2()
+|> Day03.solve2()
 |> IO.inspect(label: "\n*** Part 2 solution (example: 5DB3)")
 # IO.inspect(Time.utc_now())
 # A7AC3

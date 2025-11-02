@@ -51,56 +51,41 @@ end
 
 ```elixir
 defmodule Day03 do
-  @mapping1 %{
-    "1U" => "1", "1R" => "2", "1D" => "4", "1L" => "1",
-    "2U" => "2", "2R" => "3", "2D" => "5", "2L" => "1",
-    "3U" => "3", "3R" => "3", "3D" => "6", "3L" => "2",
-    "4U" => "1", "4R" => "5", "4D" => "7", "4L" => "4",
-    "5U" => "2", "5R" => "6", "5D" => "8", "5L" => "4",
-    "6U" => "3", "6R" => "6", "6D" => "9", "6L" => "5",
-    "7U" => "4", "7R" => "8", "7D" => "7", "7L" => "7",
-    "8U" => "5", "8R" => "9", "8D" => "8", "8L" => "7",
-    "9U" => "6", "9R" => "9", "9D" => "9", "9L" => "8",
-  }
-  @mapping2 %{
-    "1U" => "1", "1R" => "1", "1D" => "3", "1L" => "1",
-    "2U" => "2", "2R" => "3", "2D" => "6", "2L" => "2",
-    "3U" => "1", "3R" => "4", "3D" => "7", "3L" => "2",
-    "4U" => "4", "4R" => "4", "4D" => "8", "4L" => "3",
-    "5U" => "5", "5R" => "6", "5D" => "5", "5L" => "5",
-    "6U" => "2", "6R" => "7", "6D" => "A", "6L" => "5",
-    "7U" => "3", "7R" => "8", "7D" => "B", "7L" => "6",
-    "8U" => "4", "8R" => "9", "8D" => "C", "8L" => "7",
-    "9U" => "9", "9R" => "9", "9D" => "9", "9L" => "8",
-    "AU" => "6", "AR" => "B", "AD" => "A", "AL" => "A",
-    "BU" => "7", "BR" => "C", "BD" => "D", "BL" => "A",
-    "CU" => "8", "CR" => "C", "CD" => "C", "CL" => "B",
-    "DU" => "B", "DR" => "D", "DD" => "D", "DL" => "D",
-  }
-
-  def solve(text, mapping) do
-    start = "5"
-    code = ""
-    lines = AOC.as_single_lines(text) 
-      
-    {_final_position, full_code} = lines 
-    |> Enum.reduce({start, code}, fn line, {position, code} -> 
-      next_digit = line 
-        |> String.split("", trim: true)
-        |> Enum.reduce(position, fn dir, current_position -> 
-          mapping[current_position <> dir]
-        end)
-      {next_digit, code <> next_digit}
+  def parse(text) do
+    text
+    |> AOC.as_single_lines()
+    |> Enum.map(fn line -> 
+      line
+      |> String.split(~r/\W+/, trim: true)
+      |> Enum.map(fn digits -> String.to_integer(digits) end)
     end)
-    full_code
+  end
+
+  def parse2(text) do
+    text
+    |> AOC.as_single_lines()
+    |> Enum.map(fn line -> 
+      line
+      |> String.split(~r/\W+/, trim: true)
+      |> Enum.map(fn digits -> String.to_integer(digits) end)
+    end)
+    |> Enum.chunk_every(3)
+    |> Enum.map(fn three_by_three -> Enum.zip(three_by_three) end)
+    |> List.flatten()
   end
 
   def solve1(text) do
-    solve(text, @mapping1)
+    parse(text)
+    |> Enum.map(fn list -> Enum.sort(list) end)
+    |> Enum.filter(fn [a, b, c] -> a + b > c end)
+    |> Enum.count()
   end
 
   def solve2(text) do
-    solve(text, @mapping2)
+    parse2(text)
+    |> Enum.map(fn {a, b, c} -> Enum.sort([a, b, c]) end)
+    |> Enum.filter(fn [a, b, c] -> a + b > c end)
+    |> Enum.count()
   end
 end
 
@@ -108,13 +93,13 @@ end
 
 data.()
 |> Day03.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: 1985)")
-# 76792
+|> IO.inspect(label: "\n*** Part 1 solution (example: 3)")
+# 1032
 
 data.()
 |> Day03.solve2()
-|> IO.inspect(label: "\n*** Part 2 solution (example: 5DB3)")
+|> IO.inspect(label: "\n*** Part 2 solution (example: 6)")
 # IO.inspect(Time.utc_now())
-# A7AC3
+# 1838
 
 ```

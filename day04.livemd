@@ -1,0 +1,139 @@
+<!-- vim: syntax=markdown -->
+
+# Day 04
+
+```elixir
+# Note: when making the next template, something like this works well:
+#   `cat day04.livemd | sed 's/02/04/' > day04.livemd`
+# When inspecting lists of numbers, use "charlists: :as_lists"
+#
+Mix.install([
+  # Join the string so a copy of dayN to dayM doesn't destroy it.
+  {:kino, "~> 0.1" <> "4.2"}
+])
+
+# Join the string so a copy of dayN to dayM doesn't destroy it.
+IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "2" <> "4adventOfCode/advent_of_code.ex")
+alias AdventOfCode, as: AOC
+alias Kino.Input
+```
+
+## Installation and Data
+
+```elixir
+input_example = Kino.Input.textarea("Example Data", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_puzzleInput = Kino.Input.textarea("Puzzle Input", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_source_select =
+  Kino.Input.select("Source", [{:example, "example"}, {:puzzle_input, "puzzle input"}])
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+data = fn ->
+  (Kino.Input.read(input_source_select) == :example &&
+     Kino.Input.read(input_example)) ||
+    Kino.Input.read(input_puzzleInput)
+end
+```
+
+## Solution
+
+```elixir
+defmodule Day04 do
+  @match1 ~r/^(?<name>.*)\-(?<sector_id>\d+)\[(?<checksum>.+)\]/
+
+  def calc_checksum(name) do
+    name
+    |> String.replace("-", "")
+    |> String.split("", trim: true)
+    |> Enum.reduce(%{}, fn char, map -> 
+      Map.put(map, char, (map[char] || 0) + 1)
+    end)
+    |> Enum.reduce(%{}, fn {char, count}, map -> 
+      Map.put(map, count, (map[count] || []) ++ [char])
+    end)
+    |> Enum.reverse()
+    |> Enum.map(fn {_k, v} -> Enum.join(v) end)
+    # |> IO.inspect()
+    |> Enum.join()
+    |> String.slice(0..4)
+  end
+
+  def solve1(text) do
+    text
+    |> AOC.as_single_lines()
+    |> Enum.map(fn line ->
+      captures = Regex.named_captures(@match1, line)
+      sector_id = String.to_integer(captures["sector_id"])
+      calculated = calc_checksum(captures["name"])
+      # |> IO.inspect(label: "#{sector_id} (#{captures["checksum"]})")
+      (calculated == captures["checksum"]) && sector_id || 0
+    end)
+    |> Enum.sum()
+  end
+
+  def decrypt(string, rotation) do
+    rotation = rem(rotation, 26)
+    
+    string
+    |> String.split("", trim: true)
+    |> Enum.map(fn <<char>> -> 
+      ?a + rem(char - ?a + rotation, 26)
+    end)
+  end
+
+  def solve2(text) do
+    {:ok, file} = File.open("/Users/johnb/dev/2016adventOfCode/day04part2.txt", [:write])
+    |> IO.inspect()
+    
+    text
+    |> AOC.as_single_lines()
+    |> Enum.map(fn line ->
+      captures = Regex.named_captures(@match1, line)
+      sector_id = String.to_integer(captures["sector_id"])
+      calculated = calc_checksum(captures["name"])
+      # |> IO.inspect(label: "#{sector_id} (#{captures["checksum"]})")
+      (calculated == captures["checksum"]) && {captures["name"], sector_id} || 0
+    end)
+    |> Enum.reject(fn blah -> blah == 0 end)
+    |> Enum.map(fn {encrypted, sector_id} -> 
+      [sector_id, decrypt(encrypted, sector_id)]
+    end)
+    |> Enum.each(fn [n, str] -> 
+      output = "#{str} #{n}"
+      IO.puts(file, output)
+    end)
+
+    File.close(file)
+    
+    # |> Enum.filter(fn [_n, str] -> String.match?(str, ~r/ole/) end)
+    # |> Enum.slice(160..-1//1)
+  end
+end
+
+# Example:
+
+data.()
+|> Day04.solve1()
+|> IO.inspect(label: "\n*** Part 1 solution (example: 1514)")
+# 245102
+
+data.()
+|> Day04.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: )")
+# After `sort day04part2.txt > day04part2.sort.txt`
+# I saw "northpoleSobjectSstorage 324"
+# (I never correctly converted "-" to " " without additional decryption)
+
+```

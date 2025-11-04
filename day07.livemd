@@ -51,33 +51,42 @@ end
 
 ```elixir
 defmodule Day07 do
-  @mapping1 %{
-  }
-  @mapping2 %{
-  }
-
-  def solve(text, mapping) do
-  end
-
+  @abba ~r/([a-z])(?!\1)([a-z])\2\1/
+  # @bracket_abba ~r/\[!\]*[a-z]*([a-z])(?!\1)([a-z])\2\1\]/
+  @in_brackets ~r/\[(.*?)\]/
+  # @bracket_abba ~r/\[!\]*([a-z])(?!\1)([a-z])\2\1.*\]/
+  
   def solve1(text) do
-    solve(text, @mapping1)
+    lines = AOC.as_single_lines(text)
+
+    lines
+    |> Enum.filter(fn line ->
+      abba_match = Regex.match?(@abba, line)
+      in_brackets = Regex.scan(@in_brackets, line)
+      abba_in_brackets = Enum.any?(in_brackets, fn [_, inside] -> 
+        Regex.match?(@abba, inside) 
+      end)
+
+      abba_match && !abba_in_brackets
+    end)
+    |> Enum.count()
   end
 
-  def solve2(text) do
-    solve(text, @mapping2)
-  end
+  # def solve2(text) do
+  #   solve(text, @mapping2)
+  # end
 end
 
 # Example:
 
 data.()
 |> Day07.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
-#
+|> IO.inspect(label: "\n*** Part 1 solution (example: 2)")
+# 110
 
-data.()
-|> Day07.solve2()
-|> IO.inspect(label: "\n*** Part 2 solution (example: )")
+# data.()
+# |> Day07.solve2()
+# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
 # IO.inspect(Time.utc_now())
 #
 

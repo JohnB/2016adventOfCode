@@ -1,0 +1,110 @@
+<!-- vim: syntax=markdown -->
+
+# Day 06
+
+```elixir
+# Note: when making the next template, something like this works well:
+#   `cat day04.livemd | sed 's/02/04/' > day04.livemd`
+# When inspecting lists of numbers, use "charlists: :as_lists"
+#
+Mix.install([
+  # Join the string so a copy of dayN to dayM doesn't destroy it.
+  {:kino, "~> 0.1" <> "4.2"}
+])
+
+# Join the string so a copy of dayN to dayM doesn't destroy it.
+IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "2" <> "4adventOfCode/advent_of_code.ex")
+alias AdventOfCode, as: AOC
+alias Kino.Input
+```
+
+## Installation and Data
+
+```elixir
+input_example = Kino.Input.textarea("Example Data", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_puzzleInput = Kino.Input.textarea("Puzzle Input", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_source_select =
+  Kino.Input.select("Source", [{:example, "example"}, {:puzzle_input, "puzzle input"}])
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+data = fn ->
+  (Kino.Input.read(input_source_select) == :example &&
+     Kino.Input.read(input_example)) ||
+    Kino.Input.read(input_puzzleInput)
+end
+```
+
+## Solution
+
+```elixir
+defmodule Day06 do
+  def solve(text, direction) do
+    lines = AOC.as_single_lines(text)
+    length = List.first(lines) |> String.length()
+    
+    empty_columns = (0..(length-1))
+      |> Enum.reduce(%{}, fn n, acc -> Map.put(acc, n, []) end)
+
+    lines
+    |> Enum.reduce(empty_columns, fn line, acc ->
+      String.split(line, "", trim: true)
+      |> Enum.with_index(fn char, index -> {char, index} end)
+      |> Enum.reduce(acc, fn {char, index}, acc2 ->
+        {_, updated} = Map.get_and_update(acc2, index, fn list -> 
+          {list, [char] ++ list} 
+        end)
+        
+        updated
+      end)
+    end)
+    |> Enum.reduce(%{}, fn {index, list}, acc2 ->
+      Map.put(acc2, index, Enum.frequencies(list))
+    end)
+    |> Enum.reduce(%{}, fn {index, map}, acc2 ->
+      most_used = map
+        |> Enum.sort_by(fn {_k, v} -> v * direction end)
+        |> List.first()
+
+      Map.put(acc2, index, elem(most_used, 0))
+    end)
+    |> Enum.sort()
+    |> Enum.map(fn {_index, char} -> char end)
+    |> Enum.join()
+  end
+
+  def solve1(text) do
+    solve(text, -1)
+  end
+
+  def solve2(text) do
+    solve(text, 1)
+  end
+end
+
+# Example:
+
+data.()
+|> Day06.solve1()
+|> IO.inspect(label: "\n*** Part 1 solution (example: easter)")
+# umejzgdw
+
+data.()
+|> Day06.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: advent)")
+# IO.inspect(Time.utc_now())
+# aovueakv
+
+```

@@ -51,11 +51,10 @@ end
 
 ```elixir
 defmodule Day07 do
+  @aba ~r/(?=([a-z])(?!\1)([a-z])\1)/
   @abba ~r/([a-z])(?!\1)([a-z])\2\1/
-  # @bracket_abba ~r/\[!\]*[a-z]*([a-z])(?!\1)([a-z])\2\1\]/
   @in_brackets ~r/\[(.*?)\]/
-  # @bracket_abba ~r/\[!\]*([a-z])(?!\1)([a-z])\2\1.*\]/
-  
+
   def solve1(text) do
     lines = AOC.as_single_lines(text)
 
@@ -63,8 +62,8 @@ defmodule Day07 do
     |> Enum.filter(fn line ->
       abba_match = Regex.match?(@abba, line)
       in_brackets = Regex.scan(@in_brackets, line)
-      abba_in_brackets = Enum.any?(in_brackets, fn [_, inside] -> 
-        Regex.match?(@abba, inside) 
+      abba_in_brackets = Enum.any?(in_brackets, fn [_, inside] ->
+        Regex.match?(@abba, inside)
       end)
 
       abba_match && !abba_in_brackets
@@ -72,22 +71,46 @@ defmodule Day07 do
     |> Enum.count()
   end
 
-  # def solve2(text) do
-  #   solve(text, @mapping2)
-  # end
+  def solve2(text) do
+    lines = AOC.as_single_lines(text)
+
+    lines
+    |> Enum.filter(fn line ->
+      in_brackets = Regex.scan(@in_brackets, line)
+
+      [outer, inner] = Enum.reduce(in_brackets, [line, ""], fn [full, inn], [ooo, iii] ->
+        [String.replace(ooo, full, "___"), iii <> "___" <> inn]
+      end)
+
+      babs = Regex.scan(@aba, outer)
+        |> Enum.map(fn [_aba, a, b] -> b <> a <> b end)
+        |> Enum.uniq()
+
+      Enum.any?(babs, fn bab -> String.contains?(inner, bab) end)
+    end)
+    |> Enum.count()
+  end
 end
 
-# Example:
-
-data.()
-|> Day07.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: 2)")
+# Example part 1 data:
+# abba[mnop]qrst
+# abcd[bddb]xyyx
+# aaaa[qwer]tyui
+# ioxxoj[asdfgh]zxcvbn
+# sdfabbadg[regtgcddcljklk]egfdf[cdfg]jkk
+# data.()
+# |> Day07.solve1()
+# |> IO.inspect(label: "\n*** Part 1 solution (example: 2)")
 # 110
 
-# data.()
-# |> Day07.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
-# IO.inspect(Time.utc_now())
-#
+# Example part 2 data:
+# aba[bab]xyz
+# xyx[xyx]xyx
+# aaa[kek]eke
+# zazbz[bzb]cdb
+data.()
+|> Day07.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: 3)")
+# 242
 
 ```

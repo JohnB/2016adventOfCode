@@ -51,30 +51,55 @@ end
 
 ```elixir
 defmodule Day05 do
-  def solve1(text) do
+  # the meaning of 5 changes from part 1 to part 2
+  @first_index 5
+  @second_index 6
+  
+  def solve1(text, password_length) do
     IO.inspect(Time.utc_now())
     (0..100_000_000_000)
-    |> Enum.each(fn index ->
-      hash = :crypto.hash(:md5, "#{text}{index}") |> Base.encode16()
+    |> Enum.reduce_while(["", "________"], fn index, [password, password2] ->
+      plaintext = "#{text}#{index}"
+      # |> IO.inspect()
+      hash = :crypto.hash(:md5, plaintext) |> Base.encode16([case: :lower])
       if String.starts_with?(hash, "00000") do
-        IO.inspect(Time.utc_now(), label: "#{index}: #{hash}")
+        sixth = String.at(hash, @first_index)
+        seventh = String.at(hash, @second_index)
+        position = String.to_integer(sixth, 16)
+        # IO.inspect([sixth, seventh, position])
+        
+        password = if String.length(password) < password_length do
+          password <> String.at(hash, @first_index)
+        else
+          password
+        end
+        password2 = if position < password_length && String.at(password2, position) == "_" do
+          String.slice(password2, 0, position) <> 
+          seventh <> 
+          String.slice(password2, position + 1, password_length - position + 1)
+        else
+          password2
+        end
+        
+        IO.inspect([password, password2], label: "#{index}: #{String.slice(hash, 0..6)}")
+        if String.length(password) >= password_length && !String.contains?(password2, "_") do
+          {:halt, [password, password2]}
+        else
+          {:cont, [password, password2]}
+        end
+      else
+        {:cont, [password, password2]}
       end
     end)
+    IO.inspect(Time.utc_now())
   end
 end
 
 # Example:
 
-# data.()
-# Day05.solve1("abc")
-Day05.solve1("wtnhxymk")
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
-#
-
-# data.()
-# |> Day05.solve2("wtnhxymk")
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
-# IO.inspect(Time.utc_now())
-#
+data.()
+|> Day05.solve1(8)
+|> IO.inspect(label: "\n*** Part 1 solution (examples: 18f47a30 & 05ace8e3)")
+# 2414bc77 & 437e60fc
 
 ```

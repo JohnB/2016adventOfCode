@@ -78,6 +78,7 @@ defmodule Day08 do
       # map the new cell to the old value it is rotating from.
       cond do
         map["rect_width"] != "" && map["rect_height"] != "" ->
+          AOC.display_grid(grid_acc, "BEFORE " <> line)
           [rect_width, rect_height] = AOC.as_comma_separated_integers("#{map["rect_width"]},#{map["rect_height"]}")
           cells = (0..(rect_height - 1))
             |> Enum.reduce(%{}, fn row, acc ->
@@ -88,6 +89,7 @@ defmodule Day08 do
               end)
             end)
           Map.merge(grid_acc, cells)
+          |> AOC.display_grid(line)
         map["x_col"] != "" && map["x_amount"] != "" ->
           [x_col, x_amount] = AOC.as_comma_separated_integers("#{map["x_col"]},#{map["x_amount"]}")
           indexes = (x_col..last_cell//width) # |> Enum.map(fn n -> IO.inspect(n) end)
@@ -107,9 +109,9 @@ defmodule Day08 do
           end)
           Map.merge(grid_acc, cells)
       end
-      |> AOC.display_grid(line)
     end)
-    |> Enum.count(fn {_k, v} -> v == @on_pixel end)
+    |> AOC.display_grid("END")
+    |> Enum.count(fn {k, v} -> v == @on_pixel && is_integer(k) end)
   end
 
   # def solve2(text) do

@@ -17,6 +17,23 @@ defmodule AdventOfCode do
   # Grid-based helpers
 
   @doc """
+    Creates a grid of a specified size with a specified initial values.
+  """
+  def as_solid_grid(width, height, initial_value \\ nil) do
+    last_cell = width * height - 1
+
+    (0..last_cell)
+    |> Map.new(fn index -> {index, initial_value} end)
+    |> Map.merge(%{
+      grid_width: width,
+      grid_height: height,
+      infinite: false,
+      max_dimension: max(width, height),
+      last_cell: last_cell
+    })
+  end
+
+  @doc """
     Reads in a grid of characters, returning a map
   """
   def as_grid(multiline_text, width \\ nil) do

@@ -1,0 +1,133 @@
+<!-- vim: syntax=markdown -->
+
+# Day 08
+
+```elixir
+# Note: when making the next template, something like this works well:
+#   `cat day04.livemd | sed 's/02/04/' > day04.livemd`
+# When inspecting lists of numbers, use "charlists: :as_lists"
+#
+Mix.install([
+  # Join the string so a copy of dayN to dayM doesn't destroy it.
+  {:kino, "~> 0.1" <> "4.2"}
+])
+
+# Join the string so a copy of dayN to dayM doesn't destroy it.
+# NOTE: year-specific toolbox - update each year!
+IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "1" <> "6adventOfCode/advent_of_code.ex")
+alias AdventOfCode, as: AOC
+alias Kino.Input
+```
+
+## Installation and Data
+
+```elixir
+input_example = Kino.Input.textarea("Example Data", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_puzzleInput = Kino.Input.textarea("Puzzle Input", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_source_select =
+  Kino.Input.select("Source", [{:example, "example"}, {:puzzle_input, "puzzle input"}])
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+data = fn ->
+  (Kino.Input.read(input_source_select) == :example &&
+     Kino.Input.read(input_example)) ||
+    Kino.Input.read(input_puzzleInput)
+end
+```
+
+## Solution
+
+```elixir
+defmodule Day08 do
+  @on_pixel "#"
+  @off_pixel "."
+  @screen_line ~r/screen (?<width>\d+)x(?<height>\d+)/
+  @instruction_line ~r/(rect (?<rect_width>\d+)x(?<rect_height>\d+))|(rotate column x=(?<x_col>\d+) by (?<x_amount>\d+))|(rotate row y=(?<y_row>\d+) by (?<y_amount>\d+))/
+  
+  def solve1(text) do
+    # I added a screen line to example and real data since they have 
+    # different dimmensions (7x3 vs. 50x6)
+    [screen | instructions] = AOC.as_single_lines(text)
+
+    map = Regex.named_captures(@screen_line, screen)
+    width = String.to_integer(map["width"])
+    height = String.to_integer(map["height"])
+
+    grid = AOC.as_solid_grid(width, height, @off_pixel)
+    last_cell = grid.last_cell
+
+    instructions
+    |> Enum.reduce(grid, fn line, grid_acc ->
+      map = Regex.named_captures(@instruction_line, line)
+
+      # Make a new map of how each cell will change, then merge it into the grid.
+      # For a `rect` this is just "ON" but for rotations we need map entries that 
+      # map the new cell to the old value it is rotating from.
+      cond do
+        map["rect_width"] != "" && map["rect_height"] != "" ->
+          [rect_width, rect_height] = AOC.as_comma_separated_integers("#{map["rect_width"]},#{map["rect_height"]}")
+          cells = (0..(rect_height - 1))
+            |> Enum.reduce(%{}, fn row, acc ->
+              (0..(rect_width - 1))
+              |> Enum.reduce(acc, fn col, acc2 -> 
+                index = row * width + col
+                Map.put(acc2, index, @on_pixel)
+              end)
+            end)
+          Map.merge(grid_acc, cells)
+        map["x_col"] != "" && map["x_amount"] != "" ->
+          [x_col, x_amount] = AOC.as_comma_separated_integers("#{map["x_col"]},#{map["x_amount"]}")
+          indexes = (x_col..last_cell//width) # |> Enum.map(fn n -> IO.inspect(n) end)
+          delta = x_amount * width
+          cells = Enum.reduce(indexes, %{}, fn index, acc ->
+            Map.put(acc, rem(index + delta, width * height), grid_acc[index])
+          end)
+          Map.merge(grid_acc, cells)
+        map["y_row"] != "" && map["y_amount"] != "" ->
+          [y_row, y_amount] = AOC.as_comma_separated_integers("#{map["y_row"]},#{map["y_amount"]}")
+          start = y_row
+          indexes = (start..(start + width - 1)) # |> Enum.map(fn n -> IO.inspect(n) end)
+          indexes2 = Enum.slice(indexes, y_amount..-1//1) ++ Enum.slice(indexes, 0..(y_amount - 1))
+          cells = Enum.zip(indexes, indexes2)
+            |> Enum.reduce(%{}, fn {index, index2}, acc ->
+            Map.put(acc, index2, grid_acc[index])
+          end)
+          Map.merge(grid_acc, cells)
+      end
+      |> AOC.display_grid(line)
+    end)
+    |> Enum.count(fn {_k, v} -> v == @on_pixel end)
+  end
+
+  # def solve2(text) do
+  #   solve(text, 1)
+  # end
+end
+
+# Example:
+
+data.()
+|> Day08.solve1()
+|> IO.inspect(label: "\n*** Part 1 solution (example: 6)")
+# 86 is apparently wrong
+
+# data.()
+# |> Day08.solve2()
+# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
+# IO.inspect(Time.utc_now())
+# 
+
+```

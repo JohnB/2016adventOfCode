@@ -1,0 +1,131 @@
+<!-- vim: syntax=markdown -->
+
+# Day 10
+
+```elixir
+# Note: when making the next template, something like this works well:
+#   `cat day04.livemd | sed 's/02/04/' > day04.livemd`
+# When inspecting lists of numbers, use "charlists: :as_lists"
+#
+Mix.install([
+  # Join the string so a copy of dayN to dayM doesn't destroy it.
+  {:kino, "~> 0.1" <> "4.2"}
+])
+
+# Join the string so a copy of dayN to dayM doesn't destroy it.
+IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "2" <> "4adventOfCode/advent_of_code.ex")
+alias AdventOfCode, as: AOC
+alias Kino.Input
+```
+
+## Installation and Data
+
+```elixir
+input_example = Kino.Input.textarea("Example Data", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_puzzleInput = Kino.Input.textarea("Puzzle Input", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_source_select =
+  Kino.Input.select("Source", [{:example, "example"}, {:puzzle_input, "puzzle input"}])
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+data = fn ->
+  (Kino.Input.read(input_source_select) == :example &&
+     Kino.Input.read(input_example)) ||
+    Kino.Input.read(input_puzzleInput)
+end
+```
+
+## Solution
+
+```elixir
+defmodule Day10 do
+  @comparator ~r/who compares (?<high_target>\d+) and (?<low_target>\d+)\?/
+  @set_instruction ~r/value (?<value>\d+) goes to (?<destination>bot \d+)/
+  @split_instruction ~r/(?<source>bot \d+) gives low to (?<low_bot>(bot|output) \d+) and high to (?<high_bot>(bot|output) \d+)/
+
+  def apply_split([values, splits], key, target) do
+    AOC.inspect([[values, splits], key, target])
+    if Map.has_key?(splits, key) && !is_nil(values[key]) && Enum.count(values[key]) == 2 do
+      [low_dest, high_dest] = splits[key]
+      [low, high] = values[key]
+      IO.puts("CASCADE #{low}->#{low_dest}, #{high}->#{high_dest}")
+      values = Map.put(values, key, [])
+      [values, splits] = set(values, low_dest, low, target, splits)
+      set(values, high_dest, high, target, splits)
+    else
+      [values, splits]
+    end
+  end
+  
+  def set(values, key, value, target, splits) do
+    {_old, values} = Map.get_and_update(values, key, fn current ->
+      {current, current && Enum.sort(current ++ [value]) || [value]}
+    end)
+    if values[key] == target do
+      label = "SUCCESS: #{key} is comparing"
+      AOC.inspect(target, label: label)
+      raise(label)
+    end
+    apply_split([values, splits], key, target)
+  end
+  
+  def solve1(text) do
+    [comparator | instructions] = AOC.as_single_lines(text)
+    targets = Regex.named_captures(@comparator, comparator)
+    high_target = String.to_integer(targets["high_target"])
+    low_target = String.to_integer(targets["low_target"])
+    target = [low_target, high_target]
+    IO.inspect(target, label: "Looking for")
+  
+    instructions
+    |> Enum.reduce([%{}, %{}], fn instruction, [values, splits] ->
+      cond do
+        match = Regex.named_captures(@set_instruction, instruction) ->
+          value = String.to_integer(match["value"])
+          IO.puts("SET #{match["destination"]} to #{value}")
+          set(values, match["destination"], value, target, splits)
+        match = Regex.named_captures(@split_instruction, instruction) ->
+          IO.puts("SPLIT #{match["source"]}: low->#{match["low_bot"]}, high->#{match["high_bot"]}")
+          splits = Map.put(splits, match["source"], [match["low_bot"], match["high_bot"]])
+          AOC.inspect(values, label: "values")
+          AOC.inspect(splits, label: "splits")
+          apply_split([values, splits], match["source"], target)
+        true -> 
+          AOC.inspect(instruction, label: "OOPS!")
+          raise([values, splits])
+      end
+    end)
+    |> AOC.inspect()
+  end
+
+  # def solve2(text) do
+  #   solve(text, 1)
+  # end
+end
+
+# Example:
+
+data.()
+|> Day10.solve1()
+|> IO.inspect(label: "\n*** Part 1 solution (example: 'bot 2')")
+# bot 56
+
+# data.()
+# |> Day10.solve2()
+# |> IO.inspect(label: "\n*** Part 2 solution (example: advent)")
+# IO.inspect(Time.utc_now())
+# 
+
+```

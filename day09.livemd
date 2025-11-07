@@ -52,10 +52,10 @@ end
 ```elixir
 defmodule Day09 do
   @marker ~r/^(?<front>[^\(]*)\((?<length>\d+)x(?<repeat>\d+)\)(?<rest>.*)$/
-  
+
+  # return the expanded string.
   def decompress(line) do
     marker = Regex.named_captures(@marker, line)
-    |> IO.inspect(label: line)
     if is_nil(marker) do
       [line, ""]
     else
@@ -67,8 +67,23 @@ defmodule Day09 do
         |> Enum.join()
       [marker["front"] <> decompressed, decompress(rest)]
     end
-    |> IO.inspect()
     |> Enum.join()
+  end
+
+  # return the length the string would have expanded to.
+  def decompress2(line) do
+    marker = Regex.named_captures(@marker, line)
+    if is_nil(marker) do
+      String.length(line)
+    else
+      length = String.to_integer(marker["length"])
+      repeat = String.to_integer(marker["repeat"])
+      to_repeat = String.slice(marker["rest"], 0, length)
+      rest_length = String.slice(marker["rest"], length..-1//1) |> decompress2()
+      decompressed = repeat * decompress2(to_repeat)
+      String.length(marker["front"]) + decompressed + rest_length
+    end
+    # |> IO.inspect(label: "Decompressed #{String.slice(line, 0..10)}")
   end
 
   def solve1(text) do
@@ -76,27 +91,36 @@ defmodule Day09 do
     Enum.map(lines, fn line -> 
       full = decompress(line)
       String.length(full)
-      |> IO.inspect()
     end)
     |> Enum.sum()
   end
 
-  # def solve2(text) do
-  #   solve(text, 1)
-  # end
+  def solve2(text) do
+    lines = AOC.as_single_lines(text)
+    Enum.map(lines, fn line -> 
+      decompress2(line)
+      |> IO.inspect(label: "outer")
+    end)
+    |> Enum.sum()
+  end
 end
 
 # Example:
+# ADVENT
+# A(1x5)BC
+# (3x3)XYZ
+# A(2x2)BCD(2x2)EFG
+# (6x1)(1x3)A
+# X(8x2)(3x3)ABCY
+# data.()
+# |> Day09.solve1()
+# |> IO.inspect(label: "\n*** Part 1 solution (example: 57)")
+# 
 
 data.()
-|> Day09.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: 57)")
-# 
-
-# data.()
-# |> Day09.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
+|> Day09.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: #{9 + 20 + 241920 + 445})")
 # IO.inspect(Time.utc_now())
-# 
+# 11451628995
 
 ```

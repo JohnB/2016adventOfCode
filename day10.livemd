@@ -56,11 +56,11 @@ defmodule Day10 do
   @split_instruction ~r/(?<source>bot \d+) gives low to (?<low_bot>(bot|output) \d+) and high to (?<high_bot>(bot|output) \d+)/
 
   def apply_split([values, splits], key, target) do
-    AOC.inspect([[values, splits], key, target])
+    # AOC.inspect([[values, splits], key, target])
     if Map.has_key?(splits, key) && !is_nil(values[key]) && Enum.count(values[key]) == 2 do
       [low_dest, high_dest] = splits[key]
       [low, high] = values[key]
-      IO.puts("CASCADE #{low}->#{low_dest}, #{high}->#{high_dest}")
+      # IO.puts("CASCADE #{low}->#{low_dest}, #{high}->#{high_dest}")
       values = Map.put(values, key, [])
       [values, splits] = set(values, low_dest, low, target, splits)
       set(values, high_dest, high, target, splits)
@@ -74,9 +74,9 @@ defmodule Day10 do
       {current, current && Enum.sort(current ++ [value]) || [value]}
     end)
     if values[key] == target do
-      label = "SUCCESS: #{key} is comparing"
+      label = "*** Part 1 solution: #{key} is comparing"
       AOC.inspect(target, label: label)
-      raise(label)
+      # raise(label) # this was the ugly stopping point for part1
     end
     apply_split([values, splits], key, target)
   end
@@ -94,20 +94,21 @@ defmodule Day10 do
       cond do
         match = Regex.named_captures(@set_instruction, instruction) ->
           value = String.to_integer(match["value"])
-          IO.puts("SET #{match["destination"]} to #{value}")
+          # IO.puts("SET #{match["destination"]} to #{value}")
           set(values, match["destination"], value, target, splits)
         match = Regex.named_captures(@split_instruction, instruction) ->
-          IO.puts("SPLIT #{match["source"]}: low->#{match["low_bot"]}, high->#{match["high_bot"]}")
+          # IO.puts("SPLIT #{match["source"]}: low->#{match["low_bot"]}, high->#{match["high_bot"]}")
           splits = Map.put(splits, match["source"], [match["low_bot"], match["high_bot"]])
-          AOC.inspect(values, label: "values")
-          AOC.inspect(splits, label: "splits")
           apply_split([values, splits], match["source"], target)
         true -> 
           AOC.inspect(instruction, label: "OOPS!")
           raise([values, splits])
       end
     end)
-    |> AOC.inspect()
+    # |> AOC.inspect()
+    |> List.first()
+    |> Enum.filter(fn {key, _value} -> key in ["output 0", "output 1", "output 2"] end)
+    |> Enum.reduce(1, fn {_bot, [value]}, acc -> acc * value end)
   end
 
   # def solve2(text) do
@@ -119,13 +120,8 @@ end
 
 data.()
 |> Day10.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: 'bot 2')")
-# bot 56
-
-# data.()
-# |> Day10.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: advent)")
-# IO.inspect(Time.utc_now())
-# 
+|> IO.inspect(label: "\n*** Part 2 solution")
+# Part1: bot 56
+# Part2: 7847
 
 ```

@@ -1,0 +1,130 @@
+<!-- vim: syntax=markdown -->
+
+# Day 12
+
+```elixir
+# Note: when making the next template, something like this works well:
+#   `cat day04.livemd | sed 's/02/04/' > day04.livemd`
+# When inspecting lists of numbers, use "charlists: :as_lists"
+#
+Mix.install([
+  # Join the string so a copy of dayN to dayM doesn't destroy it.
+  {:kino, "~> 0.1" <> "4.2"}
+])
+
+# Join the string so a copy of dayN to dayM doesn't destroy it.
+IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "2" <> "4adventOfCode/advent_of_code.ex")
+alias AdventOfCode, as: AOC
+alias Kino.Input
+```
+
+## Installation and Data
+
+```elixir
+input_example = Kino.Input.textarea("Example Data", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_puzzleInput = Kino.Input.textarea("Puzzle Input", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_source_select =
+  Kino.Input.select("Source", [{:example, "example"}, {:puzzle_input, "puzzle input"}])
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+data = fn ->
+  (Kino.Input.read(input_source_select) == :example &&
+     Kino.Input.read(input_example)) ||
+    Kino.Input.read(input_puzzleInput)
+end
+```
+
+## Solution
+
+```elixir
+defmodule Day12 do
+  def solve(text, registers) do
+    program = AOC.as_single_lines(text)
+      |> Enum.with_index()
+      |> Enum.reduce(%{}, fn {line, index}, acc -> 
+        Map.put(acc, index, line)
+      end)
+    
+    instruction_pointer = 0
+    Enum.reduce_while(0..1_000_000_000_000, {registers, instruction_pointer}, fn _steps, {reg, ip} ->
+      instruction = program[ip]
+      cond do
+        is_nil(instruction) -> {:halt, {reg, ip}} 
+        matches = Regex.run(~r/cpy (\d+) (.+)/, instruction) ->
+          [_, value, register] = matches
+          # IO.inspect(matches, label: "COPY Immediate")
+          {:cont, {Map.put(reg, register, String.to_integer(value)), ip + 1}}
+        matches = Regex.run(~r/cpy (.+) (.+)/, instruction) ->
+          [_, src_register, dst_register] = matches
+          # IO.inspect(matches, label: "COPY Reg to Reg")
+          {:cont, {Map.put(reg, dst_register, reg[src_register]), ip + 1}}
+        matches = Regex.run(~r/inc (.+)/, instruction) ->
+          [_, register] = matches
+          # IO.inspect(matches, label: "INC")
+          {_, reg} = Map.get_and_update(reg, register, fn value -> {value, value + 1} end)
+          {:cont, {reg, ip + 1}}
+        matches = Regex.run(~r/dec (.+)/, instruction) ->
+          [_, register] = matches
+          # IO.inspect(matches, label: "DEC")
+          {_, reg} = Map.get_and_update(reg, register, fn value -> {value, value - 1} end)
+          {:cont, {reg, ip + 1}}
+        matches = Regex.run(~r/jnz (\d+) (.+)/, instruction) ->
+          [_, value, distance] = matches
+          value = String.to_integer(value)
+          distance = String.to_integer(distance)
+          # IO.inspect(matches, label: "JNZ number")
+          if value == 0 do
+            {:cont, {reg, ip + 1}}
+          else
+            {:cont, {reg, ip + distance}}
+          end
+        matches = Regex.run(~r/jnz (.+) (.+)/, instruction) ->
+          [_, register, distance] = matches
+          distance = String.to_integer(distance)
+          # IO.inspect(matches, label: "JNZ register")
+          if reg[register] == 0 do
+            {:cont, {reg, ip + 1}}
+          else
+            {:cont, {reg, ip + distance}}
+          end
+      end
+      |> IO.inspect()
+    end)
+  end
+
+  def solve1(text) do
+    solve(text, %{"a" => 0, "b" => 0, "c" => 0, "d" => 0})
+  end
+
+  def solve2(text) do
+    solve(text, %{"a" => 0, "b" => 0, "c" => 1, "d" => 0})
+  end
+end
+
+# Example:
+
+# data.()
+# |> Day12.solve1()
+# |> IO.inspect(label: "\n*** Part 1 solution (example: 42)")
+# 318007
+
+data.()
+|> Day12.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: )")
+# IO.inspect(Time.utc_now())
+# 9227661 after ~half an hour
+
+```

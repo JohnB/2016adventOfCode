@@ -1,0 +1,133 @@
+<!-- vim: syntax=markdown -->
+
+# Day 14
+
+```elixir
+# Note: when making the next template, something like this works well:
+#   `cat day04.livemd | sed 's/02/04/' > day04.livemd`
+# When inspecting lists of numbers, use "charlists: :as_lists"
+#
+Mix.install([
+  # Join the string so a copy of dayN to dayM doesn't destroy it.
+  {:kino, "~> 0.1" <> "4.2"}
+])
+
+# Join the string so a copy of dayN to dayM doesn't destroy it.
+IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "2" <> "4adventOfCode/advent_of_code.ex")
+alias AdventOfCode, as: AOC
+alias Kino.Input
+```
+
+## Installation and Data
+
+```elixir
+input_example = Kino.Input.textarea("Example Data", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_puzzleInput = Kino.Input.textarea("Puzzle Input", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_source_select =
+  Kino.Input.select("Source", [{:example, "example"}, {:puzzle_input, "puzzle input"}])
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+data = fn ->
+  (Kino.Input.read(input_source_select) == :example &&
+     Kino.Input.read(input_example)) ||
+    Kino.Input.read(input_puzzleInput)
+end
+```
+
+## Solution
+
+```elixir
+defmodule Day14 do
+  @limit 1000
+  @max_keys 64
+  @hex_chars ~w(0 1 2 3 4 5 6 7 8 9 a b c d e f)
+
+  def all_fivers() do
+    Enum.reduce(@hex_chars, %{}, fn char, map ->
+      Map.put(map, String.duplicate(char, 5), MapSet.new())
+    end)
+  end
+  
+  def solve1(seed) do
+    IO.inspect(Time.utc_now())
+    possible5s = all_fivers()
+    |> IO.inspect()
+    
+    (0..100_000_000_000)
+    # (0..1000)
+    |> Enum.reduce_while([possible5s, []], fn index, [possible, actual] ->
+      hash = :crypto.hash(:md5, "#{seed}#{index}") |> Base.encode16([case: :lower])
+      # TODO: check for fivers and move to actual
+      [possible, actual] = Enum.reduce(possible, [possible, actual], fn {fiver, index_set}, [p, a] ->
+        cond do
+          String.contains?(hash, fiver) -> 
+            # Dump too-old indexes
+            valid_indexes = Enum.reject(index_set, fn n -> index > @limit + n end)
+            a = Enum.reduce(valid_indexes, a, fn vi, acc -> acc ++ [{fiver, vi, index}] end)
+            # min_index = Enum.min(valid_indexes)
+            # future_indexes = List.delete(valid_indexes, min_index)
+            [Map.put(p, fiver, MapSet.new()), a]
+          true -> 
+            [p, a]
+        end
+      end)
+      |> IO.inspect(label: "Updated possible/actual (at #{index})")
+
+      # Then check for a new possible key
+      matches = Regex.run(~r/(.)\1\1/, hash)
+
+      cond do
+        Enum.count(actual) >= @max_keys -> 
+          {:halt, [possible, actual]}
+        is_nil(matches) ->
+          {:cont, [possible, actual]}
+        true ->
+          [_full, one_match | _rest] = matches
+          fiver = String.duplicate(one_match, 5)
+          more_possible = MapSet.put(possible[fiver], index)
+          {:cont, [Map.put(possible, fiver, more_possible), actual]}
+          |> IO.inspect()
+      end
+    end)
+    |> List.last()
+    |> Enum.map(fn {_fiver, three_at, _five_at} -> three_at end)
+    |> Enum.chunk_every(16)
+    |> Enum.map(fn sixteen -> AOC.inspect(sixteen) end)
+    |> List.flatten()
+    |> Enum.sort()
+    |> Enum.reverse()
+    |> Enum.chunk_every(16)
+    |> Enum.map(fn sixteen -> AOC.inspect(sixteen) end)
+  end
+
+  # def solve2(seed) do
+  # end
+end
+
+# Example:
+
+data.()
+|> Day14.solve1()
+|> IO.inspect(label: "\n*** Part 1 solution (example: 22728)")
+# 15168 is correct??? but its the 62nd entry
+
+# data.()
+# |> Day14.solve2()
+# |> IO.inspect(label: "\n*** Part 2 solution (example: advent)")
+# IO.inspect(Time.utc_now())
+# 
+
+```

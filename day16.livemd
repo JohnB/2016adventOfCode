@@ -106,15 +106,13 @@ end
 
 # Example:
 
+IO.inspect(Time.utc_now())
 data.()
 |> Day16.solve1()
 |> IO.inspect(label: "\n*** Part 1 solution (example: 01100)")
-# 11111000111110000
-
-# data.()
-# |> Day16.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
-# IO.inspect(Time.utc_now())
-# 
+IO.inspect(Time.utc_now())
+# Part 1 answer: 11111000111110000
+# Part 2 answer: 10111100110110100
+# It just started with a much longer disk space of 35651584
 
 ```

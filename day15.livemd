@@ -1,0 +1,110 @@
+<!-- vim: syntax=markdown -->
+
+# Day 15
+
+```elixir
+# Note: when making the next template, something like this works well:
+#   `cat day04.livemd | sed 's/02/04/' > day04.livemd`
+# When inspecting lists of numbers, use "charlists: :as_lists"
+#
+Mix.install([
+  # Join the string so a copy of dayN to dayM doesn't destroy it.
+  {:kino, "~> 0.1" <> "4.2"}
+])
+
+# Join the string so a copy of dayN to dayM doesn't destroy it.
+IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "2" <> "4adventOfCode/advent_of_code.ex")
+alias AdventOfCode, as: AOC
+alias Kino.Input
+```
+
+## Installation and Data
+
+```elixir
+input_example = Kino.Input.textarea("Example Data", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_puzzleInput = Kino.Input.textarea("Puzzle Input", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_source_select =
+  Kino.Input.select("Source", [{:example, "example"}, {:puzzle_input, "puzzle input"}])
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+data = fn ->
+  (Kino.Input.read(input_source_select) == :example &&
+     Kino.Input.read(input_example)) ||
+    Kino.Input.read(input_puzzleInput)
+end
+```
+
+## Solution
+
+```elixir
+defmodule Day15 do
+  @parse_line ~r/Disc #(\d+) has (\d+) positions; at time=(\d+), it is at position (\d+)/
+  
+  def solve1(text) do
+    lines = AOC.as_single_lines(text)
+
+    parsed = Enum.map(lines, fn line ->
+      [_full, disc, positions, time, current_position] = Regex.run(@parse_line, line)
+      [disc, positions, time, current_position] = 
+        Enum.map([disc, positions, time, current_position], fn str -> String.to_integer(str) end)
+        |> AOC.inspect()
+      %{disc: disc, positions: positions, time: time, current_position: current_position}
+    end)
+    list_max = Enum.map(parsed, fn p -> p.positions end) |> Enum.product()
+    |> AOC.inspect()
+
+    # Use megabytes of memory for lists of positions - one of which 
+    # contains all zeros at the specified index.
+    lists = Enum.map(parsed, fn p ->
+        (0..(p.positions - 1))
+        |> Enum.map(fn n -> rem(n + p.current_position + p.disc, p.positions) end)
+        |> Stream.cycle()
+        |> Stream.take(list_max)
+        |> Enum.to_list()
+      end)
+      |> Enum.zip()
+      # |> AOC.inspect(label: "zipped?")
+      |> Enum.map(&Tuple.to_list/1)
+
+    lists
+    |> Enum.with_index()
+    |> Enum.reduce_while(0, fn {list, index}, _acc ->
+      if Enum.all?(list, fn n -> n == 0 end) do
+        {:halt, index}
+      else
+        {:cont, index}
+      end
+    end)
+  end
+
+  # def solve2(text) do
+  #   solve(text, 1)
+  # end
+end
+
+# Example:
+
+IO.inspect(Time.utc_now())
+data.()
+|> Day15.solve1()
+|> IO.inspect(label: "\n*** Part 1 solution (example: 5)")
+IO.inspect(Time.utc_now())
+# Part 1:  203660
+# Part 2: 2408135
+# Note that part 2 just adds this additional rotor:
+#   Disc #7 has 11 positions; at time=0, it is at position 0.
+
+```

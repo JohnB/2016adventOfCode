@@ -61,15 +61,17 @@ defmodule Day14 do
     end)
   end
   
-  def solve1(seed) do
+  def solve(seed, rounds) do
     IO.inspect(Time.utc_now())
     possible5s = all_fivers()
-    |> IO.inspect()
     
     (0..100_000_000_000)
     # (0..1000)
     |> Enum.reduce_while([possible5s, []], fn index, [possible, actual] ->
-      hash = :crypto.hash(:md5, "#{seed}#{index}") |> Base.encode16([case: :lower])
+      hash = Enum.reduce(1..rounds, "#{seed}#{index}", fn _round, acc ->
+        :crypto.hash(:md5, acc) |> Base.encode16([case: :lower])
+      end)
+      # |> IO.inspect()
       # TODO: check for fivers and move to actual
       [possible, actual] = Enum.reduce(possible, [possible, actual], fn {fiver, index_set}, [p, a] ->
         cond do
@@ -84,7 +86,7 @@ defmodule Day14 do
             [p, a]
         end
       end)
-      |> IO.inspect(label: "Updated possible/actual (at #{index})")
+      # |> IO.inspect(label: "Updated possible/actual (at #{index})")
 
       # Then check for a new possible key
       matches = Regex.run(~r/(.)\1\1/, hash)
@@ -99,7 +101,7 @@ defmodule Day14 do
           fiver = String.duplicate(one_match, 5)
           more_possible = MapSet.put(possible[fiver], index)
           {:cont, [Map.put(possible, fiver, more_possible), actual]}
-          |> IO.inspect()
+          # |> IO.inspect()
       end
     end)
     |> List.last()
@@ -113,21 +115,26 @@ defmodule Day14 do
     |> Enum.map(fn sixteen -> AOC.inspect(sixteen) end)
   end
 
-  # def solve2(seed) do
-  # end
+  def solve1(seed) do
+    solve(seed, 1)
+  end
+
+  def solve2(seed) do
+    solve(seed, 2017)
+  end
 end
 
 # Example:
 
-data.()
-|> Day14.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: 22728)")
+# data.()
+# |> Day14.solve1()
+# |> IO.inspect(label: "\n*** Part 1 solution (example: 22728)")
 # 15168 is correct??? but its the 62nd entry
 
-# data.()
-# |> Day14.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: advent)")
+data.()
+|> Day14.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: 22551)")
 # IO.inspect(Time.utc_now())
-# 
+# 20864 (but I have an off-by 1 error on the number of keys - 1 too many)
 
 ```

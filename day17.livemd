@@ -1,0 +1,131 @@
+<!-- vim: syntax=markdown -->
+
+# Day 17
+
+```elixir
+# Note: when making the next template, something like this works well:
+#   `cat day04.livemd | sed 's/02/04/' > day04.livemd`
+# When inspecting lists of numbers, use "charlists: :as_lists"
+#
+Mix.install([
+  # Join the string so a copy of dayN to dayM doesn't destroy it.
+  {:kino, "~> 0.1" <> "4.2"}
+])
+
+# Join the string so a copy of dayN to dayM doesn't destroy it.
+IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "2" <> "4adventOfCode/advent_of_code.ex")
+alias AdventOfCode, as: AOC
+alias Kino.Input
+```
+
+## Installation and Data
+
+```elixir
+input_example = Kino.Input.textarea("Example Data", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_puzzleInput = Kino.Input.textarea("Puzzle Input", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_source_select =
+  Kino.Input.select("Source", [{:example, "example"}, {:puzzle_input, "puzzle input"}])
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+data = fn ->
+  (Kino.Input.read(input_source_select) == :example &&
+     Kino.Input.read(input_example)) ||
+    Kino.Input.read(input_puzzleInput)
+end
+```
+
+## Solution
+
+```elixir
+defmodule Day17 do
+  @parser ~r/(.+) -> (.+)/
+  @open_doors ~w(b c d e f)
+  # This is a compressed format that is expanded to a map of maps
+  @dirs %{
+    "S" => ~w(D4 R1), # Start
+    "1" => ~w(D5 LS R2), 
+    "2" => ~w(D6 L1 R3), 
+    "3" => ~w(D7 L2), 
+
+    "4" => ~w(US D8 R5), 
+    "5" => ~w(U1 D9 L4 R6), 
+    "6" => ~w(U2 DA L5 R7), 
+    "7" => ~w(U3 DB L6), 
+    
+    "8" => ~w(U4 DC R9), 
+    "9" => ~w(U5 DD L8 RA), 
+    "A" => ~w(U6 DE L9 RB), 
+    "B" => ~w(U7 DV LA), 
+    
+    "C" => ~w(U8 RD), 
+    "D" => ~w(U9 LC RE), 
+    "E" => ~w(UA LD RV), 
+    "V" => ~w() # Vault
+  }
+  |> Enum.reduce(%{}, fn {cell, list}, acc -> 
+    submap = Enum.reduce(list, %{}, fn dir_and_cell, acc2 ->
+      [dir, next_cell] = String.split(dir_and_cell, "", trim: true)
+      Map.put(acc2, dir, next_cell)
+    end)
+    Map.put(acc, cell, submap)
+  end)
+
+  def find_path(passcode, end_cell, end_cell, current_path) do
+    current_path
+  end
+
+  def find_path(passcode, start_cell, end_cell, current_path) do
+    [up, down, left, right | _rest] = :crypto.hash(:md5, passcode <> current_path) 
+      |> Base.encode16([case: :lower])
+      |> String.split("", trim: true)
+
+    %{"U" => up, "D" => down, "L" => left, "R" => right}
+      |> Enum.filter(fn {direction, char} -> 
+        (char in @open_doors) && !is_nil(@dirs[start_cell][direction])
+      end)
+      |> Enum.map(fn {direction, char} -> 
+        find_path(passcode <> direction, @dirs[start_cell][direction], 
+          end_cell, current_path <> direction)
+      end)
+  end
+  
+  def solve1(text) do
+    IO.inspect(@dirs)
+    [_,  passcode, expected] = Regex.run(@parser, text)
+    find_path(passcode, "S", "V", "")
+  end
+
+  # def solve2(text) do
+  #   solve(text, 1)
+  # end
+end
+
+# Example:
+# ihgpwlah -> DDRRRD
+# kglvqrro -> DDUDRLRRUDRD
+# ulqzkmiv -> DRURDRUDDLLDLUURRDULRLDUUDDDRR
+data.()
+|> Day17.solve1()
+|> IO.inspect(label: "\n*** Part 1 solution (example: )")
+# 
+
+# data.()
+# |> Day17.solve2()
+# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
+# IO.inspect(Time.utc_now())
+# 
+
+```

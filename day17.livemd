@@ -54,78 +54,77 @@ defmodule Day17 do
   @parser ~r/(.+) -> (.+)/
   @open_doors ~w(b c d e f)
   # This is a compressed format that is expanded to a map of maps
-  @dirs %{
-    "S" => ~w(D4 R1), # Start
-    "1" => ~w(D5 LS R2), 
-    "2" => ~w(D6 L1 R3), 
-    "3" => ~w(D7 L2), 
-
-    "4" => ~w(US D8 R5), 
-    "5" => ~w(U1 D9 L4 R6), 
-    "6" => ~w(U2 DA L5 R7), 
-    "7" => ~w(U3 DB L6), 
-    
-    "8" => ~w(U4 DC R9), 
-    "9" => ~w(U5 DD L8 RA), 
-    "A" => ~w(U6 DE L9 RB), 
-    "B" => ~w(U7 DV LA), 
-    
-    "C" => ~w(U8 RD), 
-    "D" => ~w(U9 LC RE), 
-    "E" => ~w(UA LD RV), 
-    "V" => ~w() # Vault
+  @dirs  %{
+    "S" => %{"D" => "4", "R" => "1"},
+    "1" => %{"D" => "5", "L" => "S", "R" => "2"},
+    "2" => %{"D" => "6", "L" => "1", "R" => "3"},
+    "3" => %{"D" => "7", "L" => "2"},
+    "4" => %{"D" => "8", "R" => "5", "U" => "S"},
+    "5" => %{"D" => "9", "L" => "4", "R" => "6", "U" => "1"},
+    "6" => %{"D" => "A", "L" => "5", "R" => "7", "U" => "2"},
+    "7" => %{"D" => "B", "L" => "6", "U" => "3"},
+    "8" => %{"D" => "C", "R" => "9", "U" => "4"},
+    "9" => %{"D" => "D", "L" => "8", "R" => "A", "U" => "5"},
+    "A" => %{"D" => "E", "L" => "9", "R" => "B", "U" => "6"},
+    "B" => %{"D" => "V", "L" => "A", "U" => "7"},
+    "C" => %{"R" => "D", "U" => "8"},
+    "D" => %{"L" => "C", "R" => "E", "U" => "9"},
+    "E" => %{"L" => "D", "R" => "V", "U" => "A"},
+    "V" => %{}
   }
-  |> Enum.reduce(%{}, fn {cell, list}, acc -> 
-    submap = Enum.reduce(list, %{}, fn dir_and_cell, acc2 ->
-      [dir, next_cell] = String.split(dir_and_cell, "", trim: true)
-      Map.put(acc2, dir, next_cell)
-    end)
-    Map.put(acc, cell, submap)
-  end)
 
-  def find_path(passcode, end_cell, end_cell, current_path) do
-    current_path
+  def find_path(_passcode, end_cell, end_cell, current_path) do
+    [current_path]
   end
 
   def find_path(passcode, start_cell, end_cell, current_path) do
+    # IO.inspect([passcode, start_cell, end_cell, current_path])
     [up, down, left, right | _rest] = :crypto.hash(:md5, passcode <> current_path) 
       |> Base.encode16([case: :lower])
       |> String.split("", trim: true)
 
     %{"U" => up, "D" => down, "L" => left, "R" => right}
+      # |> AOC.inspect(label: "dirs to try")
       |> Enum.filter(fn {direction, char} -> 
         (char in @open_doors) && !is_nil(@dirs[start_cell][direction])
       end)
-      |> Enum.map(fn {direction, char} -> 
-        find_path(passcode <> direction, @dirs[start_cell][direction], 
-          end_cell, current_path <> direction)
+      # |> AOC.inspect(label: "valid dirs")
+      |> Enum.map(fn {direction, _char} -> 
+        paths = [find_path(passcode, @dirs[start_cell][direction], 
+            end_cell, current_path <> direction)
+          ]
+          |> List.flatten()
+        if paths == [] do
+          []
+        else
+          # Part1: the minimum path
+          Enum.min_by(paths, &String.length/1)
+          
+          # Part2: the maximal path
+          # Enum.max_by(paths, &String.length/1)
+        end
       end)
   end
   
   def solve1(text) do
-    IO.inspect(@dirs)
     [_,  passcode, expected] = Regex.run(@parser, text)
-    find_path(passcode, "S", "V", "")
+    [path] = find_path(passcode, "S", "V", "")
+    IO.puts("Path length: #{String.length(path)}")
+    IO.puts("Expectation:   #{expected}")
+    path
   end
-
-  # def solve2(text) do
-  #   solve(text, 1)
-  # end
 end
 
-# Example:
-# ihgpwlah -> DDRRRD
-# kglvqrro -> DDUDRLRRUDRD
-# ulqzkmiv -> DRURDRUDDLLDLUURRDULRLDUUDDDRR
+# Examples:
+#   ihgpwlah -> DDRRRD
+#   kglvqrro -> DDUDRLRRUDRD
+#   ulqzkmiv -> DRURDRUDDLLDLUURRDULRLDUUDDDRR
+# Part1: 
+#.  gdjjyniy -> DUDDRLRRRD
 data.()
 |> Day17.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
-# 
-
-# data.()
-# |> Day17.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
-# IO.inspect(Time.utc_now())
-# 
+|> IO.inspect(label: "\n*** solution")
+# Part1: DUDDRLRRRD
+# Part2: 578
 
 ```

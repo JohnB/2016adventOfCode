@@ -53,45 +53,36 @@ end
 
 ```elixir
 defmodule Day19 do
-  def find_first_on_bit(bitset, index) do
-    size = Bitset.size(bitset)
-    Enum.reduce_while(0..(size - 1), bitset, fn delta, acc ->
-      which_bit = rem(index + delta, size)
-      if Bitset.test?(acc, which_bit) do
-        IO.puts("halting at #{which_bit}")
-        {:halt, which_bit}
+  def find_winning_elf(elf_count) do
+    elves = Enum.map(1..elf_count, fn n -> n end)
+    Enum.reduce_while(1..(elf_count ** 2), {elves, 1}, fn _huh, {acc, index} ->
+      num_left = Enum.count(acc)
+      victim_index = rem(index, num_left)
+      # AOC.inspect([index, victim_index, acc])
+      if num_left < 2 do
+        # IO.inspect(acc, label: "halting at #{index}")
+        {:halt, acc}
       else
-        {:cont, acc}
+        {:cont, {List.delete_at(acc, victim_index), victim_index + 1}}
       end
     end)
-    |> IO.inspect(label: "leaving find_first_on_bit")
+    |> AOC.inspect(label: "winning elf for #{elf_count} #{Integer.to_string(elf_count, 2)}")
   end
   
   def solve1(elf_count) do
     elf_count = String.to_integer(elf_count)
     IO.puts(Integer.to_string(elf_count, 2))
     IO.puts(Integer.to_string(3014603, 2))
+    IO.puts(Integer.to_string(3014603, 2) 
+      |> String.replace("0", "") 
+      |> String.split("", trim: true)
+      |> Enum.count()
+    )
 
-    bs = Bitset.new(elf_count)
-      |> AOC.inspect()
-      |> Bitset.set()
-      |> AOC.inspect()
+    (3..129//2)
+    |> Enum.map(fn n -> find_winning_elf(n) end)
 
-    Enum.reduce_while(0..(elf_count ** 2), {0, bs}, fn step, {index, acc} ->
-      elves_left = Bitset.count(acc)
-      |> AOC.inspect(label: "bits left")
-
-      on_bit = find_first_on_bit(acc, index)
-      |> AOC.inspect(label: "on_bit")
-      next_on_bit = find_first_on_bit(acc, on_bit + 1)
-      acc = Bitset.reset(acc, next_on_bit)
-      if elves_left <= 2 do
-        {:halt, {acc, on_bit}}
-      else
-        {:cont, {acc, next_on_bit}}
-      end
-      |> AOC.inspect(label: "#{index} / #{elves_left}")
-    end)
+    nil
   end
 
   # def solve2(text) do
@@ -104,7 +95,7 @@ end
 data.()
 |> Day19.solve1()
 |> IO.inspect(label: "\n*** Part 1 solution (example: 3)")
-# 
+# 1011011111111111001011 has 17 1s but 17 is not the answer
 
 # data.()
 # |> Day19.solve2()

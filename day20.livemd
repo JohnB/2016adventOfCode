@@ -1,0 +1,124 @@
+<!-- vim: syntax=markdown -->
+
+# Day 20
+
+```elixir
+# Note: when making the next template, something like this works well:
+#   `cat day04.livemd | sed 's/02/04/' > day04.livemd`
+# When inspecting lists of numbers, use "charlists: :as_lists"
+#
+Mix.install([
+  # Join the string so a copy of dayN to dayM doesn't destroy it.
+  {:kino, "~> 0.1" <> "4.2"}
+])
+
+# Join the string so a copy of dayN to dayM doesn't destroy it.
+IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "2" <> "4adventOfCode/advent_of_code.ex")
+alias AdventOfCode, as: AOC
+alias Kino.Input
+```
+
+## Installation and Data
+
+```elixir
+input_example = Kino.Input.textarea("Example Data", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_puzzleInput = Kino.Input.textarea("Puzzle Input", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_source_select =
+  Kino.Input.select("Source", [{:example, "example"}, {:puzzle_input, "puzzle input"}])
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+data = fn ->
+  (Kino.Input.read(input_source_select) == :example &&
+     Kino.Input.read(input_example)) ||
+    Kino.Input.read(input_puzzleInput)
+end
+```
+
+## Solution
+
+```elixir
+defmodule Day20 do
+  @min_value 0
+  @max_value 4294967295
+  def solve(text) do
+    [[lowest, next_lowest] | pairs] = text
+      |> AOC.as_single_lines()
+      |> Enum.map(fn line ->
+        line
+        |> String.split("-", trim: true)
+        |> Enum.map(&String.to_integer/1) 
+        |> Enum.sort()
+      end)
+      |> Enum.sort()
+      # |> AOC.inspect()
+
+    {final_pair, previous_pairs} = pairs
+    # |> Enum.take(50)
+    |> Enum.reduce({[lowest, next_lowest], []}, fn [c, d], {[a, b], acc} ->
+      # AOC.inspect([a, b, c, d])
+      cond do
+        c == b + 1 ->
+          # they abut - essentially the same as overlapping
+          {[a, d], acc}
+        b < c ->
+          # no overlap
+          {[c, d], acc ++ [a, b]}
+        d <= b ->
+          # a,b encompasses c,d - discard c,d
+          {[a, b], acc}
+        true ->
+          # they overlap - merge to a,d
+          {[a, d], acc}
+      end
+    end)
+    # |> AOC.inspect()
+
+    [first_segment_end] = Enum.slice(previous_pairs, 1..1)
+    IO.puts("\n*** Part 1 solution: #{first_segment_end + 1}")
+
+    # Enum.slice(previous_pairs, 0, 8) |> AOC.inspect()
+    # Enum.slice(previous_pairs, -8..-1) |> AOC.inspect()
+    # Enum.slice(final_pair, 0, 8) |> AOC.inspect()
+    low_end = List.first(previous_pairs) - @min_value
+    high_end = @max_value - List.last(final_pair)
+    near_high_end = List.first(final_pair) - List.last(previous_pairs) - 1
+    # AOC.inspect([low_end, high_end, near_high_end], label: "ends")
+
+    
+    previous_pairs
+    |> Enum.chunk_every(4, 2, :discard)
+    |> Enum.reduce(low_end + high_end + near_high_end, fn [_a, b, c, _d], acc ->
+        # AOC.inspect([acc, c, b, c - b - 1], label: "delta")
+        acc + c - b - 1
+      end)
+      |> IO.inspect(label: "*** Part 2 solution")
+
+    "Solved!"
+  end
+
+  def solve1(text) do
+    solve(text)
+  end
+end
+
+# Example:
+
+data.()
+|> Day20.solve1()
+# Part 1: 23923783
+# Part 2: 125
+
+```

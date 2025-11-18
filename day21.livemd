@@ -64,8 +64,80 @@ defmodule Day21 do
     # Negative steps mean left - which we turn into many rights
     string_rotate(string, String.length(string) + steps)
   end
+
+  def swap_via_positions(string, pos_a, pos_b) do
+    length = String.length(string)
+    [pos1, pos2] = Enum.map([pos_a, pos_b], fn pos ->
+      String.to_integer(pos)
+      end)
+      |> Enum.sort()
+    left = (pos1 == 0) && "" || String.slice(string, 0, pos1)
+    first = String.slice(string, pos1..pos1)
+    center = String.slice(string, (pos1 + 1)..(pos2 - 1)//1)
+    second = String.slice(string, pos2, 1)
+    right = String.slice(string, pos2 + 1, length - pos2)
+    left <> second <> center <> first <> right
+  end
+
+  def swap_letters(string, letter1, letter2) do
+    if String.contains?(string, letter1) && String.contains?(string, letter2) do
+      string
+      |> String.replace(letter1, @disallowed, global: true)
+      |> String.replace(letter2, letter1, global: true)
+      |> String.replace(@disallowed, letter2, global: true)
+    else
+      string
+    end
+  end
+
+  def reverse_substring(string, pos_a, pos_b) do
+    [pos1, pos2] = Enum.map([pos_a, pos_b], fn pos ->
+        String.to_integer(pos)
+      end)
+      |> Enum.sort()
+    left = (pos1 == 0) && "" || String.slice(string, 0, pos1)
+    center = String.slice(string, pos1..pos2//1)
+    right = String.slice(string, (pos2 + 1)..-1//1)
+    left <> String.reverse(center) <> right
+  end
+
+  def move_position_to_position(string, pos_a, pos_b) do
+    length = String.length(string)
+    [pos_a, pos_b] = Enum.map([pos_a, pos_b], fn pos ->
+        String.to_integer(pos)
+      end)
+    [pos1, pos2] = Enum.sort([pos_a, pos_b])
+    left = (pos1 == 0) && "" || String.slice(string, 0, pos1)
+    first = String.slice(string, pos_a, 1)
+    center = String.slice(string, (pos1 + 1)..(pos2 - 1)//1)
+    second = String.slice(string, pos_b, 1)
+    right = String.slice(string, pos2 + 1, length - pos2)
+    if pos_a < pos_b do
+      left <> center <> second <> first <> right
+    else
+      left <> first <> second <> center <> right
+    end
+  end
+
+  def rotate_based_on_letter_position(string, letter) do
+    length = String.length(string)
+    if String.contains?(string, letter) do
+      {_char, pos} = string
+        |> String.codepoints()
+        |> Enum.with_index()
+        # |> AOC.inspect(label: "codepoints and indexes")
+        |> Enum.find(fn {cp, _ind} -> cp == letter end)
+        # |> AOC.inspect(label: "{char, pos}")
+
+      steps = (pos >= 4) && (pos + 2) || (pos + 1)
+      # AOC.inspect([steps, length, rem(steps, length)])
+      string_rotate(string, rem(steps, length))
+    else
+      string
+    end
+  end
   
-  def solve(text) do
+  def solve1(text) do
     [start | operations] = AOC.as_single_lines(text)
     length = String.length(start)
 
@@ -75,36 +147,13 @@ defmodule Day21 do
       cond do
         matches = Regex.run(~r/swap position (\d+) with position (\d+)/, op) ->
           [_all, pos_a, pos_b] = matches
-          [pos1, pos2] = Enum.map([pos_a, pos_b], fn pos ->
-              String.to_integer(pos)
-            end)
-            |> Enum.sort()
-          left = (pos1 == 0) && "" || String.slice(acc, 0, pos1)
-          first = String.slice(acc, pos1..pos1)
-          center = String.slice(acc, (pos1 + 1)..(pos2 - 1)//1)
-          second = String.slice(acc, pos2, 1)
-          right = String.slice(acc, pos2 + 1, length - pos2)
-          left <> second <> center <> first <> right
+          swap_via_positions(acc, pos_a, pos_b)
         matches = Regex.run(~r/swap letter (.) with letter (.)/, op) ->
           [_all, letter1, letter2] = matches
-          if String.contains?(acc, letter1) && String.contains?(acc, letter2) do
-            acc
-            |> String.replace(letter1, @disallowed, global: true)
-            |> String.replace(letter2, letter1, global: true)
-            |> String.replace(@disallowed, letter2, global: true)
-          else
-            acc
-          end
+          swap_letters(acc, letter1, letter2)
         matches = Regex.run(~r/reverse positions (\d+) through (\d+)/, op) ->
           [_all, pos_a, pos_b] = matches
-          [pos1, pos2] = Enum.map([pos_a, pos_b], fn pos ->
-              String.to_integer(pos)
-            end)
-            |> Enum.sort()
-          left = (pos1 == 0) && "" || String.slice(acc, 0, pos1)
-          center = String.slice(acc, pos1..pos2//1)
-          right = String.slice(acc, (pos2 + 1)..-1//1)
-          left <> String.reverse(center) <> right
+          reverse_substring(acc, pos_a, pos_b)
         matches = Regex.run(~r/rotate left (\d+) step/, op) ->
           [_all, steps] = matches
           steps = String.to_integer(steps)
@@ -115,42 +164,12 @@ defmodule Day21 do
           string_rotate(acc, rem(steps, length))
         matches = Regex.run(~r/move position (\d+) to position (\d+)/, op) ->
           [_all, pos_a, pos_b] = matches
-          [pos_a, pos_b] = Enum.map([pos_a, pos_b], fn pos ->
-              String.to_integer(pos)
-            end)
-          [pos1, pos2] = Enum.sort([pos_a, pos_b])
-          left = (pos1 == 0) && "" || String.slice(acc, 0, pos1)
-          first = String.slice(acc, pos_a, 1)
-          center = String.slice(acc, (pos1 + 1)..(pos2 - 1)//1)
-          second = String.slice(acc, pos_b, 1)
-          right = String.slice(acc, pos2 + 1, length - pos2)
-          if pos_a < pos_b do
-            left <> center <> second <> first <> right
-          else
-            left <> first <> second <> center <> right
-          end
+          move_position_to_position(acc, pos_a, pos_b)
         matches = Regex.run(~r/rotate based on position of letter (.)/, op) ->
           [_all, letter] = matches
-          if String.contains?(acc, letter) do
-            {_char, pos} = acc
-              |> String.codepoints()
-              |> Enum.with_index()
-              # |> AOC.inspect(label: "codepoints and indexes")
-              |> Enum.find(fn {cp, _ind} -> cp == letter end)
-              # |> AOC.inspect(label: "{char, pos}")
-  
-            steps = (pos >= 4) && (pos + 2) || (pos + 1)
-            # AOC.inspect([steps, length, rem(steps, length)])
-            string_rotate(acc, rem(steps, length))
-          else
-            acc
-          end
+          rotate_based_on_letter_position(acc, letter)
       end
     end)
-  end
-
-  def solve1(text) do
-    solve(text)
   end
 
   # def solve2(text) do

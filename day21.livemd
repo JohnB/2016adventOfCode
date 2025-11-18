@@ -1,0 +1,174 @@
+<!-- vim: syntax=markdown -->
+
+# Day 21
+
+```elixir
+# Note: when making the next template, something like this works well:
+#   `cat day04.livemd | sed 's/02/04/' > day04.livemd`
+# When inspecting lists of numbers, use "charlists: :as_lists"
+#
+Mix.install([
+  # Join the string so a copy of dayN to dayM doesn't destroy it.
+  {:kino, "~> 0.1" <> "4.2"}
+])
+
+# Join the string so a copy of dayN to dayM doesn't destroy it.
+IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "2" <> "4adventOfCode/advent_of_code.ex")
+alias AdventOfCode, as: AOC
+alias Kino.Input
+```
+
+## Installation and Data
+
+```elixir
+input_example = Kino.Input.textarea("Example Data", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_puzzleInput = Kino.Input.textarea("Puzzle Input", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_source_select =
+  Kino.Input.select("Source", [{:example, "example"}, {:puzzle_input, "puzzle input"}])
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+data = fn ->
+  (Kino.Input.read(input_source_select) == :example &&
+     Kino.Input.read(input_example)) ||
+    Kino.Input.read(input_puzzleInput)
+end
+```
+
+## Solution
+
+```elixir
+defmodule Day21 do
+  @disallowed "_"
+  defguard is_non_negative(value) when abs(value) == value
+
+  def string_rotate(string, steps) when steps == 0, do: string
+  
+  def string_rotate(string, steps) when is_non_negative(steps) do
+    # Rotate 1 right and try again
+    string_rotate(String.slice(string, -1..-1//1) <> String.slice(string, 0..-2//1), steps - 1)
+  end
+  def string_rotate(string, steps) do
+    # Negative steps mean left - which we turn into many rights
+    string_rotate(string, String.length(string) + steps)
+  end
+  
+  def solve(text) do
+    [start | operations] = AOC.as_single_lines(text)
+    length = String.length(start)
+
+    operations
+    |> Enum.reduce(start, fn op, acc ->
+      AOC.inspect(op, label: acc)
+      cond do
+        matches = Regex.run(~r/swap position (\d+) with position (\d+)/, op) ->
+          [_all, pos_a, pos_b] = matches
+          [pos1, pos2] = Enum.map([pos_a, pos_b], fn pos ->
+              String.to_integer(pos)
+            end)
+            |> Enum.sort()
+          left = (pos1 == 0) && "" || String.slice(acc, 0, pos1)
+          first = String.slice(acc, pos1..pos1)
+          center = String.slice(acc, (pos1 + 1)..(pos2 - 1)//1)
+          second = String.slice(acc, pos2, 1)
+          right = String.slice(acc, pos2 + 1, length - pos2)
+          left <> second <> center <> first <> right
+        matches = Regex.run(~r/swap letter (.) with letter (.)/, op) ->
+          [_all, letter1, letter2] = matches
+          if String.contains?(acc, letter1) && String.contains?(acc, letter2) do
+            acc
+            |> String.replace(letter1, @disallowed, global: true)
+            |> String.replace(letter2, letter1, global: true)
+            |> String.replace(@disallowed, letter2, global: true)
+          else
+            acc
+          end
+        matches = Regex.run(~r/reverse positions (\d+) through (\d+)/, op) ->
+          [_all, pos_a, pos_b] = matches
+          [pos1, pos2] = Enum.map([pos_a, pos_b], fn pos ->
+              String.to_integer(pos)
+            end)
+            |> Enum.sort()
+          left = (pos1 == 0) && "" || String.slice(acc, 0, pos1)
+          center = String.slice(acc, pos1..pos2//1)
+          right = String.slice(acc, (pos2 + 1)..-1//1)
+          left <> String.reverse(center) <> right
+        matches = Regex.run(~r/rotate left (\d+) step/, op) ->
+          [_all, steps] = matches
+          steps = String.to_integer(steps)
+          string_rotate(acc, -steps)
+        matches = Regex.run(~r/rotate right (\d+) step/, op) ->
+          [_all, steps] = matches
+          steps = String.to_integer(steps)
+          string_rotate(acc, rem(steps, length))
+        matches = Regex.run(~r/move position (\d+) to position (\d+)/, op) ->
+          [_all, pos_a, pos_b] = matches
+          [pos_a, pos_b] = Enum.map([pos_a, pos_b], fn pos ->
+              String.to_integer(pos)
+            end)
+          [pos1, pos2] = Enum.sort([pos_a, pos_b])
+          left = (pos1 == 0) && "" || String.slice(acc, 0, pos1)
+          first = String.slice(acc, pos_a, 1)
+          center = String.slice(acc, (pos1 + 1)..(pos2 - 1)//1)
+          second = String.slice(acc, pos_b, 1)
+          right = String.slice(acc, pos2 + 1, length - pos2)
+          if pos_a < pos_b do
+            left <> center <> second <> first <> right
+          else
+            left <> first <> second <> center <> right
+          end
+        matches = Regex.run(~r/rotate based on position of letter (.)/, op) ->
+          [_all, letter] = matches
+          if String.contains?(acc, letter) do
+            {_char, pos} = acc
+              |> String.codepoints()
+              |> Enum.with_index()
+              # |> AOC.inspect(label: "codepoints and indexes")
+              |> Enum.find(fn {cp, _ind} -> cp == letter end)
+              # |> AOC.inspect(label: "{char, pos}")
+  
+            steps = (pos >= 4) && (pos + 2) || (pos + 1)
+            # AOC.inspect([steps, length, rem(steps, length)])
+            string_rotate(acc, rem(steps, length))
+          else
+            acc
+          end
+      end
+    end)
+  end
+
+  def solve1(text) do
+    solve(text)
+  end
+
+  # def solve2(text) do
+  #   solve(text, 1)
+  # end
+end
+
+# Example:
+
+data.()
+|> Day21.solve1()
+|> IO.inspect(label: "\n*** Part 1 solution (example: decab)")
+# ghfacdbe
+
+# data.()
+# |> Day21.solve2()
+# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
+# IO.inspect(Time.utc_now())
+# 
+
+```

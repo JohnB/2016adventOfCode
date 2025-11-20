@@ -172,21 +172,80 @@ defmodule Day21 do
     end)
   end
 
-  # def solve2(text) do
-  #   solve(text, 1)
-  # end
+  def solve2(text) do
+    # This tells us the amount to rotate LEFT to return to where we started.
+    # It only works for length of 8 (and recalculating for 5 is impossible)
+    reverse_rotator = %{
+      1 => 1,
+      3 => 2,
+      5 => 3,
+      7 => 4,
+      2 => 6,
+      4 => 7,
+      6 => 8,
+      0 => 9
+    }
+    [start | operations] = AOC.as_single_lines(text)
+    length = String.length(start)
+    IO.puts(start)
+    operations = Enum.reverse(operations) # the gist of part 2 (other than reversing ops)
+
+    operations
+    |> Enum.reduce(start, fn op, acc ->
+      AOC.inspect(op, label: acc)
+      cond do
+        matches = Regex.run(~r/swap position (\d+) with position (\d+)/, op) ->
+          [_all, pos_a, pos_b] = matches
+          swap_via_positions(acc, pos_a, pos_b)
+        matches = Regex.run(~r/swap letter (.) with letter (.)/, op) ->
+          [_all, letter1, letter2] = matches
+          swap_letters(acc, letter1, letter2)
+        matches = Regex.run(~r/reverse positions (\d+) through (\d+)/, op) ->
+          [_all, pos_a, pos_b] = matches
+          reverse_substring(acc, pos_a, pos_b)
+        matches = Regex.run(~r/rotate left (\d+) step/, op) ->
+          [_all, steps] = matches
+          steps = String.to_integer(steps)
+          string_rotate(acc, rem(steps, length)) # part 2: rightward
+        matches = Regex.run(~r/rotate right (\d+) step/, op) ->
+          [_all, steps] = matches
+          steps = String.to_integer(steps)
+          string_rotate(acc, rem(-steps, length)) # part 2: leftward
+        matches = Regex.run(~r/move position (\d+) to position (\d+)/, op) ->
+          [_all, pos_a, pos_b] = matches
+          move_position_to_position(acc, pos_b, pos_a) # part 2: reversed positions
+        matches = Regex.run(~r/rotate based on position of letter (.)/, op) ->
+          [_all, letter] = matches
+          # In-line what would be reverse_rotate_based_on_letter_position
+          # this will either do a few rotations, or many - so if a few rotations
+          # moves our letter to index 4 or more, add additional rotations.
+          if String.contains?(acc, letter) do
+            {_char, pos} = acc
+              |> String.codepoints()
+              |> Enum.with_index()
+              # |> AOC.inspect(label: "codepoints and indexes")
+              |> Enum.find(fn {cp, _ind} -> cp == letter end)
+              |> AOC.inspect(label: "{char, pos}")
+            leftward_rotation = reverse_rotator[pos]
+            string_rotate(acc, -leftward_rotation)
+          else
+            acc
+          end
+      end
+    end)
+  end
 end
 
 # Example:
 
-data.()
-|> Day21.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: decab)")
+# data.()
+# |> Day21.solve1()
+# |> IO.inspect(label: "\n*** Part 1 solution (example: decab)")
 # ghfacdbe
 
-# data.()
-# |> Day21.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
+data.()
+|> Day21.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: abcde)")
 # IO.inspect(Time.utc_now())
 # 
 

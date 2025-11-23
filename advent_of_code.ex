@@ -145,6 +145,7 @@ defmodule AdventOfCode do
 
   def grid_x(grid, cell), do: rem(cell, grid.grid_width)
   def grid_y(grid, cell), do: div(cell, grid.grid_width)
+  def cell_id(grid, x, y), do: x + y * grid.grid_width
 
   def to_text_grid(grid) do
     grid_rows(grid)

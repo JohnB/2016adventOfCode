@@ -1,0 +1,170 @@
+<!-- vim: syntax=markdown -->
+
+# Day 13
+
+```elixir
+# Note: when making the next template, something like this works well:
+#   `cat day04.livemd | sed 's/02/04/' > day04.livemd`
+# When inspecting lists of numbers, use "charlists: :as_lists"
+#
+Mix.install([
+  # Join the string so a copy of dayN to dayM doesn't destroy it.
+  {:kino, "~> 0.1" <> "4.2"}
+])
+
+# Join the string so a copy of dayN to dayM doesn't destroy it.
+IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "1" <> "6adventOfCode/advent_of_code.ex")
+alias AdventOfCode, as: AOC
+alias Kino.Input
+```
+
+## Installation and Data
+
+```elixir
+input_example = Kino.Input.textarea("Example Data", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_puzzleInput = Kino.Input.textarea("Puzzle Input", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_source_select =
+  Kino.Input.select("Source", [{:example, "example"}, {:puzzle_input, "puzzle input"}])
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+data = fn ->
+  (Kino.Input.read(input_source_select) == :example &&
+     Kino.Input.read(input_example)) ||
+    Kino.Input.read(input_puzzleInput)
+end
+```
+
+## Solution
+
+```elixir
+
+defmodule Dijkstra do
+  @moduledoc """
+  Implement https://en.wikipedia.org/wiki/Dijkstra's_algorithm#Algorithm
+  """
+
+  @doc """
+  Simplistic implimentation that assumes an AOC grid structure, dots as open
+  squares, same cost for all 4-way neighbors
+  
+  Return the set of shortest-path cell IDs from start to finish.
+  """
+  def shortest_path(grid, start, finish) do
+    # Step 2: Assign distances to unvisited nodes (step 1 was creating
+    # the passed-in unvisited set). The start node will get a 0 distance.
+    # in_process_nodes = unvisited_node_ids
+    #   |> Enum.reduce(%{}, fn unvisited_node_id, acc ->
+    #     # IO.inspect([unvisited_node_id, acc])
+    #     put_in(acc, [unvisited_node_id], update_distance.(acc, unvisited_node_id, unvisited_node_id))
+    #   end)
+    #   |> IO.inspect(label: "in_process_nodes")
+
+    # IO.puts("29")
+    # debug_useful_nodes(in_process_nodes)
+
+    # in_process_nodes # just to have an iterator of at least the correct length
+    # |> Enum.reduce_while({in_process_nodes, unvisited_node_ids}, 
+    #   fn _random_node_id, {in_process, unvisited_ids} ->
+    #   IO.puts("35")
+        
+    #   # Step 3: get the shortest-distance node
+    #   current_id = next_unvisited_node.(unvisited_ids, in_process)
+    #   # |> AOC.inspect(label: "current_id")
+
+    #   # Step 4: update distances for the neighbors
+    #   new_in_process = find_unvisited_neighbors.(current_id, unvisited_ids)
+    #     # |> AOC.inspect(label: "find_unvisited_neighbors(#{current_id}, ...)")
+    #     |> Enum.reduce(in_process, fn neighbor_id, acc1 ->
+    #       update_distance.(acc1, current_id, neighbor_id)
+    #       # |> AOC.inspect(label: "post-update_distance")
+    #     end)
+    #     # |> AOC.inspect(label: "new_in_process(#{current_id})")
+
+    #   # Step 5: remove current node from unvisited list and (probably) restart the loop
+    #   # AOC.inspect([current_id, target_node_id, unvisited_ids], label: "current_id == target_node_id?")
+    #   if current_id == target_node_id do
+    #     {:halt, {new_in_process, unvisited_ids -- [current_id]}}
+    #   else
+    #     {:cont, {new_in_process, unvisited_ids -- [current_id]}}
+    #   end        
+    #   |> AOC.inspect(label: "loop")
+    # end)
+    _shortest_path = []
+  end
+
+  def debug_useful_nodes(in_process_nodes) do
+    # IO.puts("line 62")
+    in_process_nodes
+    # |> IO.inspect(label: "huh?")
+    |> Enum.reject(fn {_k,v} -> is_nil(v.delta) end)
+    |> AOC.inspect(label: "useful in_process_nodes")
+    IO.puts("line 66")
+  end
+end
+
+defmodule Day13 do
+  @open "."
+  @wall "#"
+
+  def build_office(favorite_number, grid_size) do
+    grid = AOC.as_solid_grid(grid_size, grid_size, "?")
+    
+    AOC.grid_cells(grid)
+    |> Enum.reduce(grid, fn cell_id, acc ->
+      x = AOC.grid_x(acc, cell_id)
+      y = AOC.grid_y(acc, cell_id)
+      n = x*x + 3*x + 2*x*y + y + y*y + favorite_number
+      bit_count = Integer.to_string(n, 2)
+        |> String.replace("0", "")
+        |> String.length()
+      Map.put(acc, cell_id, rem(bit_count, 2) == 1 && @wall || @open)
+    end)
+  end
+
+  def solve1(text) do
+    [favorite_number, grid_size, finish_x, finish_y] = text
+      |> String.split(",", trim: true)
+      |> Enum.map(&String.to_integer/1)
+
+    grid = build_office(favorite_number, grid_size)
+    AOC.display_grid(grid)
+    
+    start = AOC.cell_id(grid, 1, 1)
+    finish = AOC.cell_id(grid, finish_x, finish_y)
+    AOC.inspect([start, finish], label: "Finding path")
+    path = Dijkstra.shortest_path(grid, start, finish)
+      |> AOC.inspect()
+    Enum.count(path)
+  end
+
+  # def solve2(text) do
+  # end
+end
+
+# Example:
+
+data.()
+|> Day13.solve1()
+|> IO.inspect(label: "\n*** Part 1 solution (example: 11)")
+# 
+
+# data.()
+# |> Day13.solve2()
+# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
+# IO.inspect(Time.utc_now())
+# 
+
+```

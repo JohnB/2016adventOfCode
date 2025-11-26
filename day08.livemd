@@ -92,6 +92,7 @@ defmodule Day08 do
           |> AOC.display_grid(line)
         map["x_col"] != "" && map["x_amount"] != "" ->
           [x_col, x_amount] = AOC.as_comma_separated_integers("#{map["x_col"]},#{map["x_amount"]}")
+          x_amount = rem(x_amount, height)
           indexes = (x_col..last_cell//width) # |> Enum.map(fn n -> IO.inspect(n) end)
           delta = x_amount * width
           cells = Enum.reduce(indexes, %{}, fn index, acc ->
@@ -100,7 +101,8 @@ defmodule Day08 do
           Map.merge(grid_acc, cells)
         map["y_row"] != "" && map["y_amount"] != "" ->
           [y_row, y_amount] = AOC.as_comma_separated_integers("#{map["y_row"]},#{map["y_amount"]}")
-          start = y_row
+          y_amount = rem(y_amount, width)
+          start = y_row * width
           indexes = (start..(start + width - 1)) # |> Enum.map(fn n -> IO.inspect(n) end)
           indexes2 = Enum.slice(indexes, y_amount..-1//1) ++ Enum.slice(indexes, 0..(y_amount - 1))
           cells = Enum.zip(indexes, indexes2)
@@ -120,16 +122,15 @@ defmodule Day08 do
 end
 
 # Example:
-
+# screen 7x3
+# rect 3x2
+# rotate column x=1 by 1
+# rotate row y=0 by 4
+# rotate column x=1 by 1
 data.()
 |> Day08.solve1()
 |> IO.inspect(label: "\n*** Part 1 solution (example: 6)")
-# 86 is apparently wrong
-
-# data.()
-# |> Day08.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
-# IO.inspect(Time.utc_now())
-# 
+# 116
+# UPOJFLBCEZ
 
 ```

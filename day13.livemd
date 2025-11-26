@@ -112,18 +112,7 @@ defmodule Dijkstra do
         Map.put(map, b, %{cost: cost_from_a, path: map[a].path ++ [b]})
       end
     end
-    updated_node_map = shortest_path(grid, [start], node_map, cost_function, finish)
-    
-    updated_node_map[finish]
-  end
-
-  def debug_useful_nodes(in_process_nodes) do
-    # IO.puts("line 62")
-    in_process_nodes
-    # |> IO.inspect(label: "huh?")
-    |> Enum.reject(fn {_k,v} -> is_nil(v.delta) end)
-    |> AOC.inspect(label: "useful in_process_nodes")
-    IO.puts("line 66")
+    updated_node_map = shortest_path(grid, [start], node_map, cost_function, finish)    
   end
 end
 
@@ -157,11 +146,22 @@ defmodule Day13 do
     start = AOC.cell_id(grid, 1, 1)
     finish = AOC.cell_id(grid, finish_x, finish_y)
     AOC.inspect([start, finish], label: "Finding path")
-    %{path: path, cost: _cost} = Dijkstra.shortest_path(grid, start, finish)
-      |> AOC.inspect()
+    updated_node_map = Dijkstra.shortest_path(grid, start, finish)
+    %{path: finish_path, cost: _finish_cost} = updated_node_map[finish]
     
     # Subtract the start node from the count
-    Enum.count(path) - 1
+    IO.inspect(Enum.count(finish_path) - 1, label: "\n*** Part 1 solution (example: 11)")
+
+    # Which nodes cost less than 50?
+    updated_node_map
+    |> Enum.reduce(0, fn {_node_id, %{cost: cost}}, acc ->
+      if cost <= 50 do
+        acc + 1
+      else
+        acc
+      end
+    end)
+    |> IO.inspect(label: "\n*** Part 2 solution (example: 20)")
   end
 
   # def solve2(text) do
@@ -172,13 +172,7 @@ end
 
 data.()
 |> Day13.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: 11)")
-# 
-
-# data.()
-# |> Day13.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
-# IO.inspect(Time.utc_now())
-# 
+# Part 1: 90
+# Part 2: 135
 
 ```

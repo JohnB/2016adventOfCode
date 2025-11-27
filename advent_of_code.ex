@@ -212,7 +212,63 @@ defmodule AdventOfCode do
 
     grid
   end
-  
+
+  # Dijkstra
+  #   Implement https://en.wikipedia.org/wiki/Dijkstra's_algorithm#Algorithm
+  @infinity 1_000_000_000_000
+  @wall "#"
+  @cost 1
+
+  def shortest_path(grid, latest_nodes, node_map, cost_function, finish) do
+    {updated_node_map, neighbor_nodes} = latest_nodes
+                                         |> Enum.reduce({node_map, MapSet.new()}, fn node, {map, set} ->
+      unvisited_neighbors = grid
+                            |> neighbors4(node)
+                            |> Enum.filter(fn neighbor ->
+        neighbor in Map.keys(node_map)  && node_map[neighbor].cost == @infinity
+      end)
+
+      unvisited_neighbors
+      |> Enum.reduce({map, set}, fn neighbor, {map1, set1} ->
+        {cost_function.(map1, node, neighbor), MapSet.put(set1, neighbor)}
+      end)
+    end)
+    # |> inspect(label: "{updated_node_map, neighbor_nodes}")
+
+    if updated_node_map[finish].path == [] do
+      shortest_path(grid, MapSet.to_list(neighbor_nodes), updated_node_map, cost_function, finish)
+    else
+      updated_node_map
+    end
+  end
+
+  def shortest_path(grid, start, finish) do
+    # Step 1: Find the unvisited set.
+    node_map = Enum.reject(grid_cells(grid), fn k -> grid[k] == @wall end)
+               # Step 2: Assign distances to unvisited nodes. The start node will get a 0 distance.
+               |> Enum.reduce(%{}, fn index, acc ->
+      if index == start do
+        Map.put(acc, index, %{cost: 0, path: [start]})
+      else
+        # Note: an empty path list means it is un-visited
+        Map.put(acc, index, %{cost: @infinity, path: []})
+      end
+    end)
+    # |> inspect(label: "node_map")
+
+    cost_function = fn map, a, b ->
+      # This handles Step 3 and Step 4: update path and distance from neighbors.
+      cost_from_a = map[a].cost + @cost
+      if map[b].cost < cost_from_a do
+        # Nothing to do - the node already has the lower cost & path
+        map
+      else
+        Map.put(map, b, %{cost: cost_from_a, path: map[a].path ++ [b]})
+      end
+    end
+    shortest_path(grid, [start], node_map, cost_function, finish)
+  end
+
   # Paragraph-based helpers
   def as_single_lines(multiline_text) do
     multiline_text

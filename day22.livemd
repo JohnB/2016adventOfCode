@@ -124,6 +124,6 @@ data.()
 |> Day22.solve2()
 |> IO.inspect(label: "\n*** Part 2 solution (example: )")
 # IO.inspect(Time.utc_now())
-# 185 is too low (but someone else's anser)
+# 185 is too low (but someone else's answer)
 
 ```

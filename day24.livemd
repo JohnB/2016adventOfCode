@@ -1,0 +1,136 @@
+<!-- vim: syntax=markdown -->
+
+# Day 24
+
+```elixir
+# Note: when making the next template, something like this works well:
+#   `cat day04.livemd | sed 's/02/04/' > day04.livemd`
+# When inspecting lists of numbers, use "charlists: :as_lists"
+#
+Mix.install([
+  # Join the string so a copy of dayN to dayM doesn't destroy it.
+  {:kino, "~> 0.1" <> "4.2"}
+])
+
+# Join the string so a copy of dayN to dayM doesn't destroy it.
+IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "1" <> "6adventOfCode/advent_of_code.ex")
+alias AdventOfCode, as: AOC
+alias Kino.Input
+```
+
+## Installation and Data
+
+```elixir
+input_example = Kino.Input.textarea("Example Data", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_puzzleInput = Kino.Input.textarea("Puzzle Input", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_source_select =
+  Kino.Input.select("Source", [{:example, "example"}, {:puzzle_input, "puzzle input"}])
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+data = fn ->
+  (Kino.Input.read(input_source_select) == :example &&
+     Kino.Input.read(input_example)) ||
+    Kino.Input.read(input_puzzleInput)
+end
+```
+
+## Solution
+
+```elixir
+defmodule Day24 do
+  def find_paths(_grid, [_start]), do: []
+  def find_paths(grid, [start | rest]) do
+    Enum.map(rest, fn finish -> 
+      paths = AOC.shortest_path(grid, start, finish)
+      paths[finish].path
+    end) ++ find_paths(grid, rest)
+  end
+
+  def min_path(segments, start, path_so_far, cost_so_far) do
+    next_steps = segments
+      |> Enum.filter(fn {[key1, key2], _cost} -> 
+        (key1 == start) && (key2 not in path_so_far)
+      end)
+      |> AOC.inspect(label: "next_steps")
+
+    if next_steps == [] do
+      {path_so_far, cost_so_far}
+    else
+      next_steps
+      |> Enum.map(fn {[_key1, key2], cost} ->
+        min_path(segments, key2, path_so_far ++ [start], cost_so_far + cost)
+      end)
+      |> AOC.inspect(label: "costs")
+      |> Enum.sort_by(fn {_p_so_far, c_so_far} -> c_so_far end)
+      |> List.first()
+    end
+  end
+  
+  def solve1(text) do
+    grid = AOC.as_grid(text)
+    # AOC.display_grid(grid)
+
+    locations = grid
+      |> AOC.grid_cells()
+      |> Enum.filter(fn index -> 
+        Regex.match?(~r/\d/, grid[index]) 
+      end)
+      |> Enum.sort_by(fn index -> grid[index] end)
+      |> AOC.inspect()
+
+    segments = find_paths(grid, locations)
+      |> Enum.reduce(%{}, fn path, acc ->
+        start = List.first(path)
+        finish = List.last(path)
+        start_char = grid[start]
+        finish_char = grid[finish]
+        steps = Enum.count(path) - 1
+        # sub_path = path -- [start, finish]
+        # waypoints = MapSet.intersection(MapSet.new(sub_path), MapSet.new(locations))
+        #   |> MapSet.to_list()
+        #   |> Enum.map(fn index -> grid[index] end)
+        #   |> Enum.sort()
+        AOC.inspect(steps, label: "#{start_char} -> #{finish_char}")
+        
+        acc
+        |> Map.put([start_char, finish_char], steps)
+        |> Map.put([finish_char, start_char], steps)
+      end)
+      |> AOC.inspect()
+    
+    min_path(segments, "0", [], 0)
+  end
+
+  # def solve2(text) do
+  # end
+end
+
+# Example:
+
+IO.inspect(Time.utc_now())
+data.()
+|> Day24.solve1()
+|> IO.inspect(label: "\n*** Part 1 solution (example: 14)")
+IO.inspect(Time.utc_now())
+# Part 1: 456
+
+# data.()
+# |> Day24.solve2()
+# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
+# IO.inspect(Time.utc_now())
+# 
+
+```

@@ -67,7 +67,12 @@ defmodule Day24 do
       |> AOC.inspect(label: "next_steps")
 
     if next_steps == [] do
-      {path_so_far, cost_so_far}
+      # Part 2 is the "0" check - calculate cost back ot "0"
+      if List.last(path_so_far) == "0" do
+        {path_so_far, cost_so_far}
+      else
+        min_path(segments, "0", path_so_far ++ ["0"], cost_so_far)
+      end
     else
       next_steps
       |> Enum.map(fn {[_key1, key2], cost} ->
@@ -126,6 +131,7 @@ data.()
 |> IO.inspect(label: "\n*** Part 1 solution (example: 14)")
 IO.inspect(Time.utc_now())
 # Part 1: 456
+# Part 2: 704
 
 # data.()
 # |> Day24.solve2()
